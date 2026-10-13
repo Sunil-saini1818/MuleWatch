@@ -35,7 +35,8 @@ def rule_engine(hits: list[dict], entities: dict, stats: dict) -> tuple[float, l
         points += capped
         parts.append({"name": spec["label"], "points": round(capped, 1), "terms": sorted(terms)})
         if group in ("mule_kit", "card_sale", "payout_lure"):
-            reasons.append(f"{spec['label']}: " + ", ".join(f"“{t}”" for t in sorted(terms)[:5]))
+            ctx = " (quoted inside an awareness message)" if "awareness" in by_group else ""
+            reasons.append(f"{spec['label']}{ctx}: " + ", ".join(f"“{t}”" for t in sorted(terms)[:5]))
         elif group == "awareness":
             reasons.append("Looks like awareness / legitimate context: " + ", ".join(sorted(terms)[:3]))
 
@@ -116,7 +117,7 @@ def analyze(text: str, ocr_text: str = "", stats: dict | None = None, llm: dict 
         i = min(1.0, 0.18 * len(cues)) if sale_context else min(0.12, 0.03 * len(cues))
         reasons.append(("Image shows banking material: " if sale_context else
                         "Image shows card/bank details (no sale language): ") + ", ".join(cues[:5]))
-    if ocr_hits and any(h["group"] in ("mule_kit", "card_sale", "payout_lure") for h in ocr_hits):
+    if ocr_hits and not awareness and any(h["group"] in ("mule_kit", "card_sale", "payout_lure") for h in ocr_hits):
         i = min(1.0, i + 0.3)
         reasons.append("Sale language found inside the image (OCR)")
 

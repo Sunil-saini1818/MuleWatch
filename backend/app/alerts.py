@@ -25,7 +25,8 @@ def _esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def maybe_alert(session, post, watch_hits: list[str] | None = None, previous_level: str | None = None):
+def maybe_alert(session, post, watch_hits: list[str] | None = None, previous_level: str | None = None,
+                push_allowed: bool = True):
     """Create an alert when a post newly reaches High/Critical (or hits the watchlist)."""
     rank = LEVEL_RANK.get(post.risk_level, 0)
     if rank < LEVEL_RANK["High"] and not watch_hits:
@@ -41,7 +42,7 @@ def maybe_alert(session, post, watch_hits: list[str] | None = None, previous_lev
     session.flush()
 
     push = watch_hits or rank >= LEVEL_RANK.get(ALERT_MIN_LEVEL, 3)
-    if push and telegram_enabled():
+    if push and push_allowed and telegram_enabled():
         ents = post.entities or {}
         contacts = ", ".join((ents.get("phone", []) + ents.get("upi", []) + ents.get("telegram", []))[:4])
         msg = (f"🚨 <b>MuleWatch {post.risk_level} alert</b> — score {post.risk_score:.0f}\n"
@@ -55,8 +56,10 @@ def maybe_alert(session, post, watch_hits: list[str] | None = None, previous_lev
         aid = alert.id
 
         def worker():
+            import time
             from .db import SessionLocal
             ok = _send_telegram(msg)
+            time.sleep(1.5)          # let the request that created the alert commit first
             with SessionLocal() as s:
                 a = s.get(Alert, aid)
                 if a:

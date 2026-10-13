@@ -77,7 +77,7 @@ class NBModel:
         out, seen = [], set()
         for s, gram in scored:
             gs = gram.strip()
-            if s <= 0.5 or any(gs in x or x in gs for x in seen):
+            if s <= 0.5 or sum(c.isalnum() for c in gs) < 3 or any(gs in x or x in gs for x in seen):
                 continue
             seen.add(gs)
             out.append(gs)

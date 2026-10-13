@@ -24,7 +24,7 @@ from .pipeline import ingest
 
 CRAWL_INTERVAL = float(os.getenv("CRAWL_INTERVAL", "3"))
 FORUM_URL = os.getenv("FORUM_URL", "http://localhost:8100")
-MOD_TOKEN = os.getenv("FORUM_MOD_TOKEN", "cybercell-demo")
+MOD_TOKEN = os.getenv("FORUM_MOD_TOKEN", "skit-cybercell-2026")
 UA = {"User-Agent": "MuleWatch-Crawler/1.0 (+research; hackathon demo)"}
 MAX_IMAGE = 6 * 1024 * 1024
 
@@ -133,9 +133,11 @@ CRAWLERS = {"forum": crawl_forum, "telegram": crawl_telegram}
 
 def crawl_once() -> int:
     from .pipeline import recompute_all
-    total = 0
+    total, backfill = 0, False
     with SessionLocal() as s:
         for src in s.query(Source).filter_by(enabled=True).all():
+            if src.items_seen == 0:
+                backfill = True     # first crawl of a source: don't spam Telegram with old posts
             try:
                 n = CRAWLERS[src.kind](s, src)
                 src.items_seen += n
@@ -147,7 +149,7 @@ def crawl_once() -> int:
             src.last_crawl = datetime.utcnow()
             s.commit()
         if total:
-            recompute_all(s, alert=True)
+            recompute_all(s, alert=True, push=not backfill)
     _status["last_cycle"] = datetime.utcnow().isoformat()
     _status["new_last_cycle"] = total
     return total
@@ -169,10 +171,14 @@ def start():
 
 
 def ensure_default_sources():
+    """The default forum source always follows FORUM_URL from .env."""
     with SessionLocal() as s:
-        if not s.query(Source).filter_by(kind="forum").first():
+        src = s.query(Source).filter_by(kind="forum", name="Charcha public forum").first()
+        if not src:
             s.add(Source(kind="forum", name="Charcha public forum", url=FORUM_URL))
-            s.commit()
+        elif src.url != FORUM_URL:
+            src.url, src.last_status = FORUM_URL, "address changed"
+        s.commit()
 
 
 def request_takedown(post: Post) -> tuple[bool, str]:

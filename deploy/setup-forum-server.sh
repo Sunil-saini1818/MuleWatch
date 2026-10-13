@@ -13,7 +13,7 @@ set -euo pipefail
 PORT="${PORT:-8100}"
 APP_DIR=/opt/charcha
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MOD_TOKEN="${FORUM_MOD_TOKEN:-change-me-cybercell}"
+MOD_TOKEN="${FORUM_MOD_TOKEN:-skit-cybercell-2026}"
 
 [ "$(id -u)" -eq 0 ] || { echo "Run with sudo/root"; exit 1; }
 [ -f "$SRC_DIR/forum/forum_app.py" ] || { echo "forum/ folder not found next to deploy/ ($SRC_DIR)"; exit 1; }

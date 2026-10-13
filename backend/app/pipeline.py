@@ -84,7 +84,7 @@ def watch_hits(post: Post, watch: list[WatchItem]) -> list[str]:
     return hits
 
 
-def recompute_all(session, alert: bool = True):
+def recompute_all(session, alert: bool = True, push: bool = True):
     """Re-run coordination over the whole corpus and refresh final scores."""
     posts = session.query(Post).all()
     if not posts:
@@ -120,7 +120,7 @@ def recompute_all(session, alert: bool = True):
         p.scores = dict(p.scores, ring_boost=boost, watchlist=hits, final=final, final_done=True,
                         ring_platforms=platforms)
         if alert:
-            maybe_alert(session, p, hits, previous_level=prev)
+            maybe_alert(session, p, hits, previous_level=prev, push_allowed=push)
     session.commit()
 
 

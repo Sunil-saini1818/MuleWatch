@@ -18,6 +18,12 @@ RED = colors.HexColor("#c0392b")
 LEVEL_COLOR = {"Critical": "#c0392b", "High": "#d35400", "Medium": "#b7950b", "Low": "#27ae60"}
 
 
+def _pdf_safe(text: str) -> str:
+    """Built-in PDF fonts can't draw emoji; drop them (keeps evidence text readable)."""
+    return "".join(ch if ord(ch) < 0x2000 or 0x20A0 <= ord(ch) <= 0x20CF or 0x2010 <= ord(ch) <= 0x2027 else " "
+                   for ch in (text or ""))
+
+
 def _highlight(text: str, matches: list[dict]) -> str:
     spans = sorted({(m["start"], m["end"]) for m in matches if m.get("source", "text") == "text"})
     out, pos = [], 0
@@ -70,7 +76,7 @@ def build_report(post, related_posts: list) -> bytes:
             ["Investigator verdict", escape(post.label or "Pending review"), "Language", escape(post.language)],
         ], [30 * mm, 60 * mm, 32 * mm, 56 * mm], header=False),
         Paragraph("1. Advertisement content (risk indicators highlighted)", h2),
-        Paragraph(_highlight(post.text or "(no text — image post)", post.matches or []), body),
+        Paragraph(_highlight(_pdf_safe(post.text) or "(no text - image post)", post.matches or []), body),
     ]
 
     if post.image_path:
@@ -79,7 +85,7 @@ def build_report(post, related_posts: list) -> bytes:
             try:
                 img = Image(str(p))
                 ratio = img.imageHeight / img.imageWidth
-                w = min(90 * mm, img.imageWidth)
+                w = min(80 * mm, img.imageWidth, 95 * mm / ratio)
                 img.drawWidth, img.drawHeight = w, w * ratio
                 story += [Spacer(1, 6), img]
             except Exception:
@@ -89,7 +95,7 @@ def build_report(post, related_posts: list) -> bytes:
 
     story.append(Paragraph("2. Why this was flagged", h2))
     for r in post.reasons or ["No specific indicators."]:
-        story.append(Paragraph("• " + xesc(r), body))
+        story.append(Paragraph("• " + xesc(_pdf_safe(r)), body))
 
     s = post.scores or {}
     rows = [["Component", "Score", "Detail"],
@@ -123,7 +129,7 @@ def build_report(post, related_posts: list) -> bytes:
         rows = [["Case", "Platform", "Score", "Link reason", "Excerpt"]]
         for rp in related_posts[:20]:
             rows.append([f"MW-{rp.id:05d}", escape(rp.platform), f"{rp.risk_score:.0f}",
-                         xesc("; ".join(why.get(rp.id, []))[:120]), xesc((rp.text or rp.ocr_text or "")[:110])])
+                         xesc("; ".join(why.get(rp.id, []))[:120]), xesc(_pdf_safe(rp.text or rp.ocr_text or "")[:110])])
         story.append(table(rows, [20 * mm, 22 * mm, 13 * mm, 50 * mm, 73 * mm]))
 
     story.append(KeepTogether([

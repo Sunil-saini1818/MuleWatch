@@ -27,7 +27,7 @@ DATA = Path(os.getenv("FORUM_DATA_DIR", BASE / "data"))
 UPLOADS = DATA / "uploads"
 UPLOADS.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA / "charcha.db"
-MOD_TOKEN = os.getenv("FORUM_MOD_TOKEN", "cybercell-demo")
+MOD_TOKEN = os.getenv("FORUM_MOD_TOKEN", "skit-cybercell-2026")
 SITE_NAME = os.getenv("FORUM_NAME", "Charcha")
 
 app = FastAPI(title="Charcha forum", docs_url=None, redoc_url=None)
