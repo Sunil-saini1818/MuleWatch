@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}u/{{ prof.username }} · {{ SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="card comm-head">
+  <span class="avatar lg" style="background:{{ prof.avatar }}">{{ prof.username[0]|upper }}</span>
+  <div><h1>u/{{ prof.username }}</h1><p>Joined {{ prof.joined|ago }} · {{ posts|length }} post{{ '' if posts|length == 1 else 's' }}</p></div>
+</div>
+{% set my_votes = {} %}
+{% for p in posts %}{% include "_card.html" %}{% else %}
+  <div class="card empty">No posts yet.</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,101 @@
+"""Generate the labelled training corpus for the text classifier.
+
+The corpus is template-generated (English, Hinglish, Hindi) and is deliberately DIFFERENT from the
+Charcha forum demo posts, so what the command center catches on the forum is unseen data.
+All phone numbers / UPI IDs / handles are synthetic.
+
+    python training/generate_training.py   ->  training/training_data.jsonl
+"""
+import json
+import random
+from pathlib import Path
+
+random.seed(7)
+
+PRODUCTS = ["current account", "savings account", "saving a/c", "corporate account", "bank account",
+            "current a/c", "firm account", "business current account", "khata", "account"]
+BANKS = ["SBI", "HDFC", "ICICI", "Axis", "Kotak", "PNB", "BOB", "Canara", "IndusInd", "Yes Bank", "IDFC",
+         "AU Bank", "Equitas", "Fino", "Airtel Payments Bank"]
+KIT = ["full kit", "complete kit", "ATM + passbook + cheque book", "netbanking + ATM", "kit with SIM",
+       "IB + ATM + SIM", "passbook ATM chequebook sim sab milega"]
+EXTRA = ["KYC done", "no KYC needed", "pre-activated", "old account 2 year", "high limit", "Aadhaar linked",
+         "unlimited limit", "100% working", "replacement guarantee", "trusted seller", "bulk available"]
+USE = ["gaming", "betting", "USDT P2P", "crypto withdrawal", "cash out", "online game payout", "trading"]
+CONTACT = ["DM", "Telegram only", "WhatsApp", "inbox", "call", "msg"]
+PRICE = ["₹8000", "₹12,000", "15k", "₹25000 per account", "20k only", "Rs 18000", "₹9,500/-"]
+
+
+def phone():
+    return random.choice(["+91 7", "+91 8", "9", "+91-9", "6"]) + "".join(random.choice("0123456789") for _ in range(9))
+
+
+def upi():
+    return random.choice(["kit", "acc", "bank", "rk", "sonu", "deal", "fast"]) + str(random.randint(10, 999)) + "@" + \
+        random.choice(["ybl", "okaxis", "paytm", "ibl", "oksbi", "axl"])
+
+
+def tg():
+    return "t.me/" + random.choice(["acc", "kit", "bank", "ca", "mule", "fast", "trusted"]) + \
+        random.choice(["_hub", "_store", "_deal", "wala", "_india", "_seller"]) + str(random.randint(1, 99))
+
+
+def suspicious():
+    p, b = random.choice(PRODUCTS), random.choice(BANKS)
+    forms = [
+        lambda: f"{b} {p} available with {random.choice(KIT)}. {random.choice(EXTRA)}. {random.choice(PRICE)}. {random.choice(CONTACT)} {tg()}",
+        lambda: f"Selling {b} {p} for {random.choice(USE)} work. {random.choice(EXTRA)}, {random.choice(KIT)}. Contact {phone()}",
+        lambda: f"{p} kiraye pe chahiye? {b} ka {random.choice(KIT)} ready hai. {random.choice(PRICE)} me. Whatsapp {phone()}",
+        lambda: f"Apna bank account do, har mahine {random.choice(['20k', '30k', '₹15000', '50k'])} kamao. Sirf {random.choice(USE)} transactions. Safe hai bhai. DM {tg()}",
+        lambda: f"Rent your {p} and earn {random.choice(['₹2000/day', '30k per month', '₹1500 daily'])}. We only use it for {random.choice(USE)}. Payment via {upi()}",
+        lambda: f"ATM cards with PIN available, {b} debit card for sale. {random.choice(EXTRA)}. Pay {upi()}",
+        lambda: f"Live CC and debit card with CVV available. {random.choice(['Dumps', 'Fullz', 'Cards'])} {random.choice(PRICE)}. {tg()}",
+        lambda: f"{b} ka current account chahiye toh contact karo, {random.choice(KIT)}, {random.choice(EXTRA)}. Delivery all India. {phone()}",
+        lambda: f"बैंक खाता उपलब्ध है, पूरा किट मिलेगा — एटीएम पासबुक चेकबुक। {random.choice(PRICE)}। संपर्क {phone()}",
+        lambda: f"किराये पर खाता चाहिए? गेमिंग के लिए करंट अकाउंट उपलब्ध। व्हाट्सएप {phone()}",
+        lambda: f"Need {p} holders urgently. Give your account for {random.choice(USE)} and get commission on your account. {random.choice(CONTACT)} {phone()}",
+        lambda: f"F.r.e.s.h {p} r3ady, {random.choice(KIT)}, n0 kyc. {tg()} {random.choice(PRICE)}",
+        lambda: f"BULK {p.upper()} AVAILABLE — {b}, {random.choice(BANKS)}, {random.choice(BANKS)}. {random.choice(KIT)}. USDT accepted {random.choice(['TQ7Xk2YpZ6bM1rJ9aV8fW3eN4cL5hG2sD1', '0x9f3a2b1c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a'])}",
+        lambda: f"Corporate account available for {random.choice(USE)}, net banking + ATM, {random.choice(EXTRA)}, IFSC {random.choice(['SBIN', 'HDFC', 'ICIC', 'UTIB'])}0{random.randint(100000, 999999)}. {phone()}",
+    ]
+    return random.choice(forms)()
+
+
+def benign():
+    b = random.choice(BANKS)
+    forms = [
+        lambda: f"Open a zero balance savings account with {b} through the official app. Visit your nearest branch for details.",
+        lambda: f"Beware! Never sell or rent your bank account — it is a crime and makes you a money mule. Report to 1930 or cybercrime.gov.in",
+        lambda: f"I lost my {b} ATM card yesterday, how to block it? Customer care not responding.",
+        lambda: f"{b} credit card annual fee waived for first year, apply online on the official website.",
+        lambda: f"Selling my old iPhone 12, 128GB, good condition, ₹28000. Contact {phone()}",
+        lambda: f"Room available for rent near Malviya Nagar, ₹7000 per month, students preferred. Call {phone()}",
+        lambda: f"Hiring: accountant with 2 years experience, Tally & GST knowledge. Send CV to hr@{random.choice(['abcfoods', 'ravitraders', 'jaipurtex'])}.com",
+        lambda: f"Which bank is best for opening a current account for a small shop? Need UPI and low charges.",
+        lambda: f"My debit card was blocked after 3 wrong PIN attempts, how long does unblock take at {b}?",
+        lambda: f"Fraud alert: someone is calling and asking for OTP in the name of {b} KYC update. Don't share!",
+        lambda: f"Bike for sale — Honda Activa 2019, single owner, ₹42000. WhatsApp {phone()}",
+        lambda: f"Study group for GATE CSE starting this Sunday at central library, everyone welcome.",
+        lambda: f"Kisi ko pata hai {b} me passbook update kaise hota hai? Machine kaam nahi kar rahi.",
+        lambda: f"Mera account freeze ho gaya bina kisi reason ke, kya karun? Branch walon ne cyber cell bola.",
+        lambda: f"सावधान! अपना बैंक खाता किसी को किराये पर न दें, यह अपराध है। 1930 पर शिकायत करें।",
+        lambda: f"Second hand books for sale — engineering 3rd year, half price. Contact {phone()}",
+        lambda: f"Got my {b} credit card limit increased after 1 year of usage, anyone else?",
+        lambda: f"Tiffin service available in Mansarovar, home-made food, ₹2500/month. Call {phone()}",
+        lambda: f"How to link Aadhaar with savings account online? Is it mandatory for {b}?",
+        lambda: f"Job alert: {b} PO recruitment 2026 notification out, apply online before the last date.",
+        lambda: f"Pay rent via UPI {upi()} — landlord asked to share screenshot after payment.",
+        lambda: f"Workshop on cyber safety: how money mule networks recruit students via Telegram. Register free.",
+    ]
+    return random.choice(forms)()
+
+
+def main():
+    rows = [{"text": suspicious(), "label": 1} for _ in range(330)] + [{"text": benign(), "label": 0} for _ in range(330)]
+    random.shuffle(rows)
+    out = Path(__file__).parent / "training_data.jsonl"
+    out.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    print(f"wrote {len(rows)} samples -> {out}")
+
+
+if __name__ == "__main__":
+    main()

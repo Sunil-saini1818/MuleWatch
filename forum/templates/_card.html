@@ -1,0 +1,25 @@
+<article class="card post-card{% if p.flagged %} is-flagged{% endif %}" data-post-id="{{ p.id }}">
+  <div class="votes" data-id="{{ p.id }}">
+    <button class="vote up{% if my_votes and my_votes.get(p.id) == 1 %} on{% endif %}" data-v="1" aria-label="Upvote">▲</button>
+    <span class="score">{{ p.score }}</span>
+    <button class="vote down{% if my_votes and my_votes.get(p.id) == -1 %} on{% endif %}" data-v="-1" aria-label="Downvote">▼</button>
+  </div>
+  <div class="post-body-col">
+    <div class="meta">
+      <a class="comm" href="/c/{{ p.community }}">c/{{ p.community }}</a>
+      <span class="dot">•</span>
+      <a class="by" href="/u/{{ p.username }}">u/{{ p.username }}</a>
+      <span class="dot">•</span>
+      <time title="{{ p.created }}">{{ p.created|ago }}</time>
+    </div>
+    {% if p.flagged %}<div class="flag-pill">🚔 Under review by Cyber Cell{% if p.flag_case %} · {{ p.flag_case }}{% endif %}</div>{% endif %}
+    <h2 class="title"><a href="/p/{{ p.id }}">{{ p.title }}</a></h2>
+    {% if p.link %}<a class="ext" href="/p/{{ p.id }}">🔗 {{ p.link|truncate(48, True, '…') }}</a>{% endif %}
+    {% if p.body %}<p class="snippet">{{ p.body|truncate(260, True, '…') }}</p>{% endif %}
+    {% if p.image %}<a href="/p/{{ p.id }}" class="thumb-wrap"><img class="thumb" src="/uploads/{{ p.image }}" alt="" loading="lazy"></a>{% endif %}
+    <div class="actions">
+      <a href="/p/{{ p.id }}#comments">💬 {{ p.ncomments }} comment{{ '' if p.ncomments == 1 else 's' }}</a>
+      <button class="share" data-url="/p/{{ p.id }}">↗ Share</button>
+    </div>
+  </div>
+</article>

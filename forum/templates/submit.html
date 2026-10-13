@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Create post · {{ SITE_NAME }}{% endblock %}
+{% block main %}
+<h1 class="page-title">Create a post</h1>
+<form class="card submit" method="post" action="/submit" enctype="multipart/form-data">
+  <label>Community
+    <select name="community" required>
+      {% for name, desc, icon in COMMUNITIES %}
+        <option value="{{ name }}" {{ 'selected' if preselect == name }}>{{ icon }} c/{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Title<input name="title" maxlength="300" required placeholder="An interesting title"></label>
+  <label>Text <span class="muted">(optional)</span><textarea name="body" rows="7" placeholder="Write something…"></textarea></label>
+  <label>Link <span class="muted">(optional)</span><input name="link" placeholder="https://"></label>
+  <label class="file">Image <span class="muted">(optional, max 6 MB)</span>
+    <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" id="imgInput">
+    <img id="imgPreview" class="preview" alt="" hidden>
+  </label>
+  <div class="row-end"><a class="btn btn-ghost" href="/">Cancel</a><button class="btn btn-primary">Post</button></div>
+</form>
+{% endblock %}

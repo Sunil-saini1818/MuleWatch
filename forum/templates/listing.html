@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{% if community %}c/{{ community[0] }} · {% endif %}{{ SITE_NAME }}{% endblock %}
+{% block main %}
+  {% if community %}
+    <div class="card comm-head">
+      <span class="comm-icon">{{ community[2] }}</span>
+      <div><h1>c/{{ community[0] }}</h1><p>{{ community[1] }}</p></div>
+      <a class="btn btn-primary" href="/submit?c={{ community[0] }}">Post here</a>
+    </div>
+  {% elif title %}
+    <h1 class="page-title">{{ title }}</h1>
+  {% endif %}
+
+  {% if user and not title %}
+  <a class="card composer" href="/submit{% if community %}?c={{ community[0] }}{% endif %}">
+    <span class="avatar sm" style="background:{{ user.avatar }}">{{ user.username[0]|upper }}</span>
+    <span class="fake-input">Start a charcha…</span>
+    <span class="icon">🖼️</span><span class="icon">🔗</span>
+  </a>
+  {% endif %}
+
+  <div class="sorts">
+    {% set base = '/c/' ~ community[0] if community else '/' %}
+    <a class="{{ 'on' if sort == 'hot' }}" href="{{ base }}?sort=hot">🔥 Hot</a>
+    <a class="{{ 'on' if sort == 'new' }}" href="{{ base }}?sort=new">🆕 New</a>
+    <a class="{{ 'on' if sort == 'top' }}" href="{{ base }}?sort=top">⬆ Top</a>
+  </div>
+
+  {% for p in posts %}{% include "_card.html" %}{% else %}
+    <div class="card empty">Nothing here yet. Be the first to post!</div>
+  {% endfor %}
+{% endblock %}

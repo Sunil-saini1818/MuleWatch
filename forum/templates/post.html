@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ p.title }} · c/{{ p.community }}{% endblock %}
+{% block head %}<script type="application/ld+json">{{ ld_json|safe }}</script>{% endblock %}
+{% block main %}
+<article class="card post-full{% if p.flagged %} is-flagged{% endif %}" data-post-id="{{ p.id }}">
+  <div class="votes" data-id="{{ p.id }}">
+    <button class="vote up" data-v="1" aria-label="Upvote">▲</button>
+    <span class="score">{{ p.score }}</span>
+    <button class="vote down" data-v="-1" aria-label="Downvote">▼</button>
+  </div>
+  <div class="post-body-col">
+    <div class="meta">
+      <a class="comm" href="/c/{{ p.community }}">c/{{ p.community }}</a><span class="dot">•</span>
+      <a class="by" href="/u/{{ p.username }}"><span class="avatar xs" style="background:{{ p.avatar }}">{{ p.username[0]|upper }}</span> u/{{ p.username }}</a>
+      <span class="dot">•</span><time title="{{ p.created }}">{{ p.created|ago }}</time>
+    </div>
+    {% if p.flagged %}
+      <div class="flag-banner">
+        <strong>🚔 This post is under review by the Cyber Cell</strong>
+        <span>Flagged by MuleWatch{% if p.flag_case %} · Case {{ p.flag_case }}{% endif %}{% if p.flag_reason %} · {{ p.flag_reason }}{% endif %}. Do not contact the poster or send money. Report fraud at cybercrime.gov.in or call 1930.</span>
+      </div>
+    {% endif %}
+    <h1 class="title big">{{ p.title }}</h1>
+    {% if p.body %}<div class="body">{{ p.body }}</div>{% endif %}
+    {% if p.link %}<a class="ext big" href="{{ p.link }}" target="_blank" rel="nofollow noopener ugc">🔗 {{ p.link }}</a>{% endif %}
+    {% if p.image %}<div class="img-wrap"><img class="full-img" src="/uploads/{{ p.image }}" alt="Image attached to post"></div>{% endif %}
+    <div class="actions">
+      <span>💬 {{ comments|length }} comments</span>
+      <button class="share" data-url="/p/{{ p.id }}">↗ Share</button>
+    </div>
+  </div>
+</article>
+
+<section class="card comments" id="comments">
+  {% if user %}
+    <form method="post" action="/p/{{ p.id }}/comment" class="comment-form">
+      <textarea name="body" rows="3" placeholder="Add a comment" required></textarea>
+      <button class="btn btn-primary">Comment</button>
+    </form>
+  {% else %}
+    <p class="muted"><a href="/login?next=/p/{{ p.id }}">Log in</a> to join the discussion.</p>
+  {% endif %}
+  {% for c in comments %}
+    <div class="comment">
+      <span class="avatar xs" style="background:{{ c.avatar }}">{{ c.username[0]|upper }}</span>
+      <div><div class="meta"><a class="by" href="/u/{{ c.username }}">u/{{ c.username }}</a><span class="dot">•</span>{{ c.created|ago }}</div>
+      <p>{{ c.body }}</p></div>
+    </div>
+  {% else %}
+    <p class="muted">No comments yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

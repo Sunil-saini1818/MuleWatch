@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{% block title %}{{ SITE_NAME }} — Jaipur's community forum{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect rx='9' width='32' height='32' fill='%23e8590c'/><path d='M8 10h16v9H15l-5 4v-4H8z' fill='white'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/charcha.css?v=3">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="sandbox">Demo sandbox for IEEE-IGNITE Hackathon 2026 · all users &amp; posts are synthetic · monitored by MuleWatch</div>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="/">
+        <span class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect rx="9" width="32" height="32" fill="currentColor"/><path d="M8 10h16v9H15l-5 4v-4H8z" fill="#fff"/></svg></span>
+        <span class="brand-name">{{ SITE_NAME }}</span>
+      </a>
+      <form class="search" action="/search"><input name="q" placeholder="Search Charcha" aria-label="Search"></form>
+      <nav class="top-actions">
+        {% if user %}
+          <a class="btn btn-primary" href="/submit"><span>＋</span> Create post</a>
+          <a class="me" href="/u/{{ user.username }}" title="Your profile"><span class="avatar sm" style="background:{{ user.avatar }}">{{ user.username[0]|upper }}</span><span class="hide-sm">{{ user.username }}</span></a>
+          <a class="link-muted hide-sm" href="/logout">Log out</a>
+        {% else %}
+          <a class="btn btn-ghost" href="/login">Log in</a>
+          <a class="btn btn-primary" href="/register">Sign up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="nav-col">
+      <a class="nav-item" href="/">🏠 Home</a>
+      <a class="nav-item" href="/new">🆕 Latest</a>
+      <a class="nav-item" href="/?sort=top">🔥 Top</a>
+      <div class="nav-head">Communities</div>
+      {% for name, desc, icon in COMMUNITIES %}
+        <a class="nav-item" href="/c/{{ name }}">{{ icon }} c/{{ name }}</a>
+      {% endfor %}
+    </aside>
+    <main class="main">{% block main %}{% endblock %}</main>
+    <aside class="side">{% block side %}
+      <div class="card side-card">
+        <div class="side-banner"></div>
+        <h3>About {{ SITE_NAME }}</h3>
+        <p>Jaipur's friendly place to talk money, jobs, campus life and buy &amp; sell stuff. Be kind. No scams.</p>
+        <a class="btn btn-primary wide" href="/submit">Create post</a>
+      </div>
+      <div class="card side-card rules">
+        <h4>Community rules</h4>
+        <ol>
+          <li>No selling or renting of bank accounts, ATM cards or SIMs</li>
+          <li>No financial scams or "easy money" schemes</li>
+          <li>Respect everyone, no spam</li>
+        </ol>
+      </div>
+    {% endblock %}</aside>
+  </div>
+  <script src="/static/charcha.js?v=3"></script>
+</body>
+</html>

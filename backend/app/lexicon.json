@@ -1,0 +1,100 @@
+{
+  "_doc": "Lexicon of risk indicators. group weight is applied once per distinct term (capped per group). Investigator feedback adapts each term via keyword_stats. Add Hindi/Hinglish variants freely.",
+  "groups": {
+    "mule_kit": {
+      "label": "Mule-account sale language",
+      "weight": 30,
+      "cap": 55,
+      "terms": [
+        "full kit", "account kit", "kit available", "kit ready", "complete kit", "kit with sim",
+        "atm passbook cheque", "atm + passbook", "passbook + atm", "netbanking + atm", "ib + atm", "inb + atm",
+        "ready account", "fresh account", "current account available", "savings account available",
+        "saving account available", "corporate account available", "account for sale", "accounts for sale",
+        "bank account for sale", "selling bank account", "selling bank accounts", "sell bank account",
+        "account on rent", "accounts on rent", "rent account", "account rent", "account kiraye", "kiraye pe account",
+        "kiraye par account", "khata kiraye", "khata bechna", "khata bech", "mule account", "gaming account",
+        "betting account", "usdt account", "p2p account", "withdrawal account", "cash out account",
+        "cashout account", "cheque book atm card sim", "current a/c available", "c/a available", "ca available",
+        "sa available", "account available for gaming", "fresh current account",
+        "खाता बेचना", "खाता किराये", "किराये पर खाता", "बैंक खाता बिक्री", "खाता उपलब्ध", "पूरा किट",
+        "खाता बेच", "करंट अकाउंट उपलब्ध", "किट उपलब्ध"
+      ]
+    },
+    "card_sale": {
+      "label": "Card sale / card data",
+      "weight": 28,
+      "cap": 50,
+      "terms": [
+        "atm card for sale", "debit card for sale", "credit card for sale", "selling atm card",
+        "selling atm cards", "selling debit card", "selling credit card", "cc for sale", "cvv", "dumps",
+        "fullz", "card with pin", "cards with pin", "atm with pin", "virtual card sale", "live cc",
+        "cc available", "card available with pin", "एटीएम कार्ड बेच", "कार्ड पिन के साथ"
+      ]
+    },
+    "payout_lure": {
+      "label": "Recruiting account holders (rent-your-account lure)",
+      "weight": 22,
+      "cap": 40,
+      "terms": [
+        "rent your account", "rent your bank account", "give your account", "commission on your account",
+        "apna account do", "account do paisa kamao", "account dekar kamao", "per month by renting",
+        "earn by renting", "passive income account", "lend your account", "share your account",
+        "apna khata", "खाता दो पैसे कमाओ", "अपना खाता किराये"
+      ]
+    },
+    "evasion": {
+      "label": "KYC evasion / trust & urgency cues",
+      "weight": 12,
+      "cap": 30,
+      "terms": [
+        "no kyc", "without kyc", "kyc done", "kyc ready", "pre-activated", "pre activated",
+        "no questions", "100% working", "trusted seller", "escrow", "inbox only", "telegram only",
+        "dm only", "limit increased", "high limit", "unlimited limit", "unfreeze", "aadhar linked",
+        "aadhaar linked", "pan linked", "old account", "vintage account", "1 year old", "2 year old",
+        "bulk available", "bulk", "per account", "replacement guarantee", "home delivery", "urgent sale",
+        "बिना केवाईसी", "तुरंत"
+      ]
+    },
+    "financial_object": {
+      "label": "Financial instrument mentioned",
+      "weight": 6,
+      "cap": 14,
+      "terms": [
+        "bank account", "current account", "savings account", "saving account", "corporate account",
+        "atm card", "debit card", "credit card", "passbook", "cheque book", "checkbook", "net banking",
+        "netbanking", "internet banking", "sim card", "khata", "a/c", "खाता", "एटीएम", "पासबुक", "कार्ड"
+      ]
+    },
+    "sale_intent": {
+      "label": "Sale / rent intent",
+      "weight": 6,
+      "cap": 14,
+      "terms": [
+        "for sale", "available", "sell", "selling", "rent", "kiraye", "kiraya", "deal", "dm",
+        "price", "rate", "contact", "whatsapp", "telegram", "बेच", "बिक्री", "किराये", "उपलब्ध", "संपर्क"
+      ]
+    },
+    "awareness": {
+      "label": "Awareness / legitimate context (reduces risk)",
+      "weight": -22,
+      "cap": -45,
+      "terms": [
+        "never sell", "do not sell", "don't sell", "dont sell", "never share", "do not share", "don't share",
+        "beware", "fraud alert", "report to 1930", "call 1930", "cybercrime.gov.in", "awareness",
+        "money mule", "is a crime", "punishable", "lost my", "blocked my", "how to block", "how to apply",
+        "official app", "visit your nearest branch", "visit branch", "apply online", "rbi guidelines",
+        "stay safe", "scam alert", "be careful", "सावधान", "कभी न बेचें", "जागरूक"
+      ]
+    }
+  },
+  "combos": [
+    {"all": ["financial_object", "sale_intent"], "bonus": 18, "label": "Financial instrument + sale/rent intent"},
+    {"all": ["financial_object", "evasion"], "bonus": 10, "label": "Financial instrument + KYC-evasion cue"}
+  ],
+  "image_terms": [
+    "valid thru", "valid from", "debit", "credit", "rupay", "visa", "mastercard", "platinum", "classic",
+    "passbook", "cheque", "account no", "a/c no", "ifsc", "customer id", "cif", "branch",
+    "state bank", "hdfc", "icici", "axis", "kotak", "punjab national", "bank of baroda", "canara",
+    "union bank", "indusind", "yes bank", "idfc", "airtel payments", "paytm payments", "kit"
+  ]
+}

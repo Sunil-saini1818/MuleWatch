@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Log in' if mode == 'login' else 'Sign up' }} · {{ SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="card auth">
+  <h1>{{ 'Welcome back' if mode == 'login' else 'Join ' ~ SITE_NAME }}</h1>
+  <p class="muted">{{ 'Log in to post, vote and comment.' if mode == 'login' else 'Pick a username — it takes 10 seconds.' }}</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/{{ mode }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>Username<input name="username" required autocomplete="username" autofocus></label>
+    <label>Password<input name="password" type="password" required autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}"></label>
+    <button class="btn btn-primary wide">{{ 'Log in' if mode == 'login' else 'Create account' }}</button>
+  </form>
+  {% if mode == 'login' %}
+    <p class="muted small">New here? <a href="/register?next={{ next }}">Create an account</a></p>
+    <p class="hint">Demo account: <b>demo</b> / <b>demo123</b></p>
+  {% else %}
+    <p class="muted small">Already have an account? <a href="/login?next={{ next }}">Log in</a></p>
+  {% endif %}
+</div>
+{% endblock %}
+{% block side %}{% endblock %}
