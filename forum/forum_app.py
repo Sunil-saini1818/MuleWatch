@@ -15,6 +15,7 @@ import time
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -67,7 +68,7 @@ def init_db():
         """)
 
 
-def hash_pw(pw: str, salt: str | None = None) -> str:
+def hash_pw(pw: str, salt: Optional[str] = None) -> str:
     salt = salt or secrets.token_hex(8)
     return salt + "$" + hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), 120_000).hex()
 
@@ -80,7 +81,7 @@ def check_pw(pw: str, stored: str) -> bool:
 AVATAR_COLORS = ["#f97316", "#0ea5e9", "#22c55e", "#a855f7", "#ef4444", "#eab308", "#14b8a6", "#ec4899"]
 
 
-def create_user(c, username: str, pw: str, joined: str | None = None) -> int:
+def create_user(c, username: str, pw: str, joined: Optional[str] = None) -> int:
     color = AVATAR_COLORS[int(hashlib.md5(username.encode()).hexdigest(), 16) % len(AVATAR_COLORS)]
     cur = c.execute("INSERT INTO users(username,pw,joined,avatar) VALUES(?,?,?,?)",
                     (username, hash_pw(pw), joined or datetime.utcnow().isoformat(), color))
@@ -284,7 +285,7 @@ ALLOWED_IMG = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 @app.post("/submit")
 async def submit(request: Request, title: str = Form(...), community: str = Form(...), body: str = Form(""),
-                 link: str = Form(""), image: UploadFile | None = File(None)):
+                 link: str = Form(""), image: Optional[UploadFile] = File(None)):
     u = current_user(request)
     if not u:
         return RedirectResponse("/login?next=/submit", status_code=303)
