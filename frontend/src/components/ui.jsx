@@ -64,10 +64,12 @@ export { GROUP_CLASS, GROUP_LABEL };
 /** Renders text with keyword + identifier spans highlighted. */
 export function HighlightedText({ text, matches = [], entitySpans = [] }) {
   if (!text) return <p className="muted">No text — image-only post.</p>;
-  const cls = new Array(text.length).fill(null);
-  const tip = new Array(text.length).fill(null);
+  // backend offsets are Unicode code points; split the same way so emoji don't shift highlights
+  const chars = Array.from(text);
+  const cls = new Array(chars.length).fill(null);
+  const tip = new Array(chars.length).fill(null);
   const paint = (s, e, c, t) => {
-    for (let i = s; i < Math.min(e, text.length); i++) {
+    for (let i = s; i < Math.min(e, chars.length); i++) {
       if (!cls[i] || PRIORITY[c] > PRIORITY[cls[i]]) { cls[i] = c; tip[i] = t; }
     }
   };
@@ -75,10 +77,10 @@ export function HighlightedText({ text, matches = [], entitySpans = [] }) {
   entitySpans.forEach((s) => paint(s.start, s.end, "hl-ent", s.kind.replace("_", " ")));
   const out = [];
   let i = 0;
-  while (i < text.length) {
+  while (i < chars.length) {
     let j = i;
-    while (j < text.length && cls[j] === cls[i] && tip[j] === tip[i]) j++;
-    const chunk = text.slice(i, j);
+    while (j < chars.length && cls[j] === cls[i] && tip[j] === tip[i]) j++;
+    const chunk = chars.slice(i, j).join("");
     out.push(cls[i] ? <mark key={i} className={cls[i]} title={tip[i]}>{chunk}</mark> : <span key={i}>{chunk}</span>);
     i = j;
   }

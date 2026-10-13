@@ -51,7 +51,7 @@ def maybe_alert(session, post, watch_hits: list[str] | None = None, previous_lev
                f"<i>{_esc((post.text or post.ocr_text or '')[:220])}</i>\n\n"
                f"Why: {_esc(reason[:160])}\n"
                + (f"Identifiers: {_esc(contacts)}\n" if contacts else "")
-               + f"\n🔎 {PUBLIC_BASE_URL}/post/{post.id}")
+               + f"\n🔎 {PUBLIC_BASE_URL}/case/{post.id}")
         alert.channel = "telegram"
         aid = alert.id
 
