@@ -83,6 +83,9 @@ The forum is marked as a demo sandbox, sends `noindex`, and blocks crawlers in r
 
 ---
 
+## Demo guide
+Full step-by-step demonstration guide with setup commands, URLs, script and troubleshooting: [`docs/MuleWatch_Demo_Guide.pdf`](docs/MuleWatch_Demo_Guide.pdf) (also as Word).
+
 ## 3-minute demo script
 
 1. **Command center** on the projector: 50 posts scanned, 16 critical, 4 seller rings. Turn **Sound on**.
