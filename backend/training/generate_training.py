@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Generate the labelled training corpus for the text classifier.
 
 The corpus is template-generated (English, Hinglish, Hindi) and is deliberately DIFFERENT from the

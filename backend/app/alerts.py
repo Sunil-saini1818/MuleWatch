@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Alerting: every High/Critical post becomes a dashboard alert; Telegram push if configured."""
 import os
 import threading

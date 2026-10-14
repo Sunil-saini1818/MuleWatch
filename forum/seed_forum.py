@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Seed the Charcha forum with 50 synthetic posts: ordinary community posts, tricky look-alikes
 (awareness posts, bank questions, someone showing their new card) and mule / card-sale ads —
 some posted by different accounts of the same seller network. Three sellers also hide their ads

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Real-time collectors for publicly available content.
 
 * ForumCrawler   — crawls a public forum's /new page and each post page, reading the

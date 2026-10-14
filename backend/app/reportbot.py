@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Citizen reporting bot for Telegram.
 
 People forward a suspicious message, send a link, a screenshot or just type what they saw. The bot

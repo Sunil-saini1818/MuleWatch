@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Lightweight multilingual text classifier: character n-gram Naive Bayes.
 
 Why char n-grams: they handle Hinglish spelling variants (kiraye/kiraya/kiraaye),

@@ -41,8 +41,8 @@ else
 fi
 
 PY="$(command -v python3.13 || command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3 || true)"
-if [ -z "$PY" ] || ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
-  echo "!! Python 3.10 or newer is needed (found: ${PY:-none} $("${PY:-false}" --version 2>&1 || true))."
+if [ -z "$PY" ] || ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'; then
+  echo "!! Python 3.9 or newer is needed (found: ${PY:-none} $("${PY:-false}" --version 2>&1 || true))."
   echo "   Install it with: $INSTALL_HINT"
   exit 1
 fi

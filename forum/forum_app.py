@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Charcha — a small public community forum used as the live monitoring target for MuleWatch.
 
 Reddit-style: communities, posts with text / link / image, votes, comments, login & register.

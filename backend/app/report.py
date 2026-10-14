@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Evidence report (PDF) for a flagged post — ready to attach to an NCRP / cyber-cell complaint."""
 import io
 from datetime import datetime

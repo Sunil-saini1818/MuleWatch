@@ -8,3 +8,4 @@ datasketch>=1.6
 reportlab>=4.0
 requests>=2.31
 pytesseract>=0.3.10
+eval_type_backport
