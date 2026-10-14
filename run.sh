@@ -47,6 +47,13 @@ if [ -z "$PY" ] || ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3,
   exit 1
 fi
 
+# Some Macs report an empty macOS version to Python (platform.mac_ver() == ""), which crashes pip's
+# "truststore" certificate code. pip's legacy certificate handling avoids it.
+if [ "$(uname)" = "Darwin" ] && ! "$PY" -c 'import platform, sys; sys.exit(0 if platform.mac_ver()[0] else 1)'; then
+  echo "==> macOS version not visible to Python; using pip's legacy certificate mode"
+  export PIP_USE_DEPRECATED=legacy-certs
+fi
+
 if [ ! -d .venv ]; then
   echo "==> Creating virtualenv"
   if ! "$PY" -m venv .venv; then
