@@ -32,11 +32,12 @@ function MonitorStatus() {
   const active = src?.sources?.filter((s) => s.enabled) || [];
   const err = active.some((s) => s.last_status?.startsWith("error"));
   const last = active.map((s) => s.last_crawl).filter(Boolean).sort().pop();
+  const oldForum = active.some((s) => s.last_status?.includes("update the forum"));
   return (
-    <Link to="/sources" className={`monitor ${connected && !err ? "on" : "off"}`}>
+    <Link to="/sources" className={`monitor ${connected && !err && !oldForum ? "on" : "off"}`}>
       <span className="pulse" />
       <span>
-        {connected ? (err ? "Source unreachable" : `Monitoring ${active.length} source${active.length === 1 ? "" : "s"}`) : "Reconnecting…"}
+        {connected ? (err ? "Source unreachable" : oldForum ? "Comments not readable: update the forum" : `Monitoring ${active.length} source${active.length === 1 ? "" : "s"}`) : "Reconnecting…"}
         {last && <small>last crawl {timeAgo(last)}</small>}
       </span>
     </Link>

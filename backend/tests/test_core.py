@@ -108,3 +108,13 @@ def test_comment_style_texts():
     for ok in ("Thanks, very helpful post!", "dm kiya bhai", "Interested!",
                "Part-time food delivery partners needed, weekly payout. Call 9876501234"):
         assert analyze(ok)["base_score"] < 30, ok
+
+
+def test_buyer_side_card_data_request():
+    t = "I will give 10000 for ATM Card details. It will not be used for Frauds. Contact 0123456789"
+    assert analyze(t)["base_score"] >= 80
+    assert analyze("Need ATM card, 5k dunga, koi risk nahi. DM")["base_score"] >= 55
+    for ok in ("Never share your card details or OTP with anyone. Report fraud to 1930.",
+               "I will pay the rent via UPI tomorrow, please share account details",
+               "Which bank is best for a current account for my boutique? Need a current account with UPI QR."):
+        assert analyze(ok)["base_score"] < 30, ok

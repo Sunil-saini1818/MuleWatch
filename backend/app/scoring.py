@@ -4,6 +4,8 @@ final = noisy-OR( rule engine , text classifier , image cues , [LLM] ) * 100
         + coordination boost (ring membership) + watchlist floor        (applied in pipeline)
 
 Every component is stored so the UI can show *why* a post was flagged."""
+import re
+
 from .extract import LEXICON, extract_entities, find_keywords
 from .imaging import image_cues
 from .ml import model
@@ -22,7 +24,12 @@ def term_multiplier(term: str, stats: dict) -> float:
     return round(0.3 + 1.2 * precision, 3)
 
 
-def rule_engine(hits: list[dict], entities: dict, stats: dict) -> tuple[float, list[dict], list[str]]:
+# "I will give 10000 for ...", "5k dunga account ke liye", "paying ₹2000 per card"
+PAY_OFFER = re.compile(r"\b(?:give|pay|paying|offer|offering|dunga|denge|milenge?)\b[^.\n]{0,15}?(?:₹|rs\.?|inr)?\s?\d[\d,]*\s?k?\b"
+                       r"|(?:₹|rs\.?|inr)?\s?\d[\d,]*\s?k?\s+(?:dunga|denge|milenge?)\b", re.I)
+
+
+def rule_engine(hits: list[dict], entities: dict, stats: dict, text_for_rules: str = "") -> tuple[float, list[dict], list[str]]:
     by_group: dict[str, set] = {}
     for h in hits:
         by_group.setdefault(h["group"], set()).add(h["term"])
@@ -52,6 +59,10 @@ def rule_engine(hits: list[dict], entities: dict, stats: dict) -> tuple[float, l
         strong or ({"financial_object", "sale_intent"} <= set(by_group))
         or ({"financial_object", "evasion"} <= set(by_group)))
     contact = [k for k in ("phone", "phone_like", "whatsapp", "telegram", "upi", "handle") if entities.get(k)]
+    if PAY_OFFER.search(text_for_rules) and ("financial_object" in by_group or "card_sale" in by_group) and not awareness:
+        points += 20
+        parts.append({"name": "Offers money for a bank account or card", "points": 20, "terms": []})
+        reasons.append("Offers money in exchange for a bank account or card")
     if "money_lure" in by_group and contact and not awareness:
         points += 27
         parts.append({"name": "Easy-money lure with a contact", "points": 27, "terms": entities[contact[0]][:2]})
@@ -104,7 +115,7 @@ def analyze(text: str, ocr_text: str = "", stats: dict | None = None, llm: dict 
     spans = entities.pop("_spans")
     text_spans = [s for s in spans if s["end"] <= len(text)]
 
-    r, parts, reasons, risky_language = rule_engine(text_hits + ocr_hits, entities, stats)
+    r, parts, reasons, risky_language = rule_engine(text_hits + ocr_hits, entities, stats, text + "\n" + ocr_text)
 
     groups = {h["group"] for h in text_hits + ocr_hits}
     awareness = "awareness" in groups

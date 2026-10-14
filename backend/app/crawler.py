@@ -128,6 +128,8 @@ def crawl_forum(session, src: Source) -> int:
             p.remote_id = rid
             known.add(rid)
             new += 1
+        if ncomments and "comment" not in d:
+            _status["comments_unsupported"] = True     # forum on the server is older than comment scanning
         for cm in d.get("comment") or []:
             crid = f"{rid}#c{cm.get('identifier')}"
             if crid in known or not (cm.get("text") or "").strip():
@@ -212,6 +214,8 @@ def crawl_once() -> int:
                 src.items_seen += n
                 src.last_status = f"ok · {n} new" if n else "ok"
                 total += n
+                if src.kind == "forum" and _status.get("comments_unsupported"):
+                    src.last_status += " · comments not readable: update the forum on the server"
             except Exception as e:
                 src.last_status = f"error: {type(e).__name__}: {str(e)[:120]}"
                 _status["errors"] += 1

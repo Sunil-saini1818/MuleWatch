@@ -33,7 +33,7 @@ export default function Dashboard() {
     const byId = new Map(recent.map((p) => [p.id, p]));
     feed.forEach((p) => { if (!byId.has(p.id)) byId.set(p.id, p); });
     return [...byId.values()].sort((a, b) => b.id - a.id)
-      .filter((p) => !flaggedOnly || ["Critical", "High"].includes(p.risk_level)).slice(0, 25);
+      .filter((p) => !flaggedOnly || ["Critical", "High", "Medium"].includes(p.risk_level)).slice(0, 25);
   }, [recent, feed, flaggedOnly]);
 
   if (err) return <Empty title="Can't reach the MuleWatch API">{err}. Start the backend with ./run.sh and reload.</Empty>;
@@ -60,7 +60,7 @@ export default function Dashboard() {
             <h2>Live intercepts</h2>
             <label className="switch">
               <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />
-              <span>Flagged only</span>
+              <span>Hide low risk</span>
             </label>
           </div>
           <div className="feed">

@@ -67,7 +67,7 @@
       ]
     },
     "card_sale": {
-      "label": "Card sale / card data",
+      "label": "Card sale or card-data request",
       "weight": 28,
       "cap": 50,
       "terms": [
@@ -90,7 +90,23 @@
         "cc available",
         "card available with pin",
         "एटीएम कार्ड बेच",
-        "कार्ड पिन के साथ"
+        "कार्ड पिन के साथ",
+        "atm card details",
+        "debit card details",
+        "credit card details",
+        "card details",
+        "net banking details",
+        "netbanking details",
+        "internet banking details",
+        "netbanking id password",
+        "net banking id password",
+        "card number and pin",
+        "card and pin",
+        "card pin and otp",
+        "send otp",
+        "share otp",
+        "एटीएम कार्ड की जानकारी",
+        "कार्ड डिटेल"
       ]
     },
     "payout_lure": {
@@ -159,7 +175,7 @@
       ]
     },
     "evasion": {
-      "label": "KYC evasion / trust & urgency cues",
+      "label": "KYC evasion / trust & reassurance cues",
       "weight": 12,
       "cap": 30,
       "terms": [
@@ -194,7 +210,24 @@
         "home delivery",
         "urgent sale",
         "बिना केवाईसी",
-        "तुरंत"
+        "तुरंत",
+        "not be used for fraud",
+        "not used for fraud",
+        "not for fraud",
+        "no fraud",
+        "100% legal",
+        "legal work",
+        "no risk",
+        "risk free",
+        "koi risk nahi",
+        "safe hai",
+        "fully safe",
+        "police case nahi",
+        "not be used for frauds",
+        "not used for frauds",
+        "not for frauds",
+        "no frauds",
+        "not for any fraud"
       ]
     },
     "financial_object": {
@@ -248,7 +281,18 @@
         "बिक्री",
         "किराये",
         "उपलब्ध",
-        "संपर्क"
+        "संपर्क",
+        "will give",
+        "will pay",
+        "i will pay",
+        "paying",
+        "buying",
+        "buy",
+        "purchase",
+        "dunga",
+        "denge",
+        "dena hai",
+        "kharidna"
       ]
     },
     "awareness": {

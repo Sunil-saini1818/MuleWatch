@@ -37,7 +37,7 @@ export default function Sources() {
             <tr key={s.id}>
               <td>{s.name}<div className="muted small">{{ forum: "Public forum", telegram: "Telegram public channel", page: "Single web page, new case when it changes" }[s.kind]}</div></td>
               <td><code>{s.url}</code></td>
-              <td className={s.last_status?.startsWith("error") ? "err" : "ok-text"}>{s.last_status || "waiting"}</td>
+              <td className={s.last_status?.startsWith("error") || s.last_status?.includes("update the forum") ? "err" : "ok-text"}>{s.last_status || "waiting"}</td>
               <td>{timeAgo(s.last_crawl)}</td>
               <td>{s.items_seen}</td>
               <td><label className="switch"><input type="checkbox" checked={s.enabled} onChange={async (e) => setData(await api.toggleSource(s.id, e.target.checked))} /><span /></label></td>
