@@ -7,6 +7,7 @@ in the comments of ordinary posts.
     python seed_forum.py            # creates data/charcha.db (wipes the old one)
 
 All people, numbers, handles and banks are fictional."""
+import json
 import random
 import shutil
 import sys
@@ -187,12 +188,36 @@ def main():
             created = now - timedelta(hours=hrs, minutes=random.randint(0, 50))
             if image:
                 shutil.copy(IMG / image, F.UPLOADS / image)
-            cur = c.execute("INSERT INTO posts(user_id,community,title,body,link,image,created,score) VALUES(?,?,?,?,?,?,?,?)",
-                            (users[user], comm, title, body, link, image, created.isoformat(), score))
+            p_meta = {
+                "user_id": str(users[user]),
+                "username": user,
+                "email": f"{user}@gmail.com",
+                "phone": "+91 98290 41736" if any(k in user for k in ("kitwala", "rohit", "sonu", "deals")) else "",
+                "account_created": (now - timedelta(days=random.randint(10, 180))).isoformat(),
+                "active_status": "Active Now",
+                "ip_address": f"103.155.{random.randint(10, 99)}.{random.randint(2, 250)}",
+                "location_estimate": random.choice(["Jaipur, RJ, IN", "Jodhpur, RJ, IN", "Kota, RJ, IN", "Delhi, DL, IN"]),
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "session_id": f"sess_{random.randint(100000, 999999)}",
+            }
+            cur = c.execute("INSERT INTO posts(user_id,community,title,body,link,image,created,score,author_metadata) VALUES(?,?,?,?,?,?,?,?,?)",
+                            (users[user], comm, title, body, link, image, created.isoformat(), score, json.dumps(p_meta)))
             for i, (cu, text) in enumerate(comments):
-                c.execute("INSERT INTO comments(post_id,user_id,body,created) VALUES(?,?,?,?)",
+                cm_meta = {
+                    "user_id": str(users[cu]),
+                    "username": cu,
+                    "email": f"{cu}@gmail.com",
+                    "phone": "",
+                    "account_created": (now - timedelta(days=random.randint(5, 90))).isoformat(),
+                    "active_status": "Active Now",
+                    "ip_address": f"103.155.{random.randint(10, 99)}.{random.randint(2, 250)}",
+                    "location_estimate": "Jaipur, RJ, IN",
+                    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "session_id": f"sess_{random.randint(100000, 999999)}",
+                }
+                c.execute("INSERT INTO comments(post_id,user_id,body,created,author_metadata) VALUES(?,?,?,?,?)",
                           (cur.lastrowid, users[cu], text,
-                           min(now, created + timedelta(minutes=20 + 35 * i)).isoformat()))
+                           min(now, created + timedelta(minutes=20 + 35 * i)).isoformat(), json.dumps(cm_meta)))
     print(f"Seeded {len(POSTS)} posts, {len(names) + len(EXTRA_USERS)} users -> {F.DB_PATH}")
     print("Logins: demo / demo123, judge1..judge3 / demo123 (seed users: <name> / charcha123)")
 

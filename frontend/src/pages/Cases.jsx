@@ -14,9 +14,14 @@ export default function Cases() {
   const levels = (sp.get("level") || "").split(",").filter(Boolean);
   const set = (k, v) => { const n = new URLSearchParams(sp); v ? n.set(k, v) : n.delete(k); setSp(n, { replace: true }); };
 
+  const activePlatform = sp.get("platform") || sp.get("source_platform") || "";
+
   useEffect(() => {
-    api.posts({ level: sp.get("level"), category: sp.get("category"), q: sp.get("q"), label: sp.get("label"), source: sp.get("source"),
-      cluster: sp.get("cluster"), sort: sp.get("sort") || "risk", limit: 200 }).then(setData).catch(() => {});
+    api.posts({
+      level: sp.get("level"), category: sp.get("category"), q: sp.get("q"), label: sp.get("label"),
+      source: sp.get("source"), platform: sp.get("platform"), source_platform: sp.get("source_platform"),
+      cluster: sp.get("cluster"), sort: sp.get("sort") || "risk", limit: 200
+    }).then(setData).catch(() => {});
   }, [sp, version]);
 
   const toggleLevel = (l) => {
@@ -24,12 +29,29 @@ export default function Cases() {
     set("level", next.join(","));
   };
 
+  const clearPlatform = () => {
+    const n = new URLSearchParams(sp);
+    n.delete("platform");
+    n.delete("source_platform");
+    setSp(n, { replace: true });
+  };
+
   return (
     <div>
       <div className="page-head">
         <h1>Cases</h1>
-        <p>{data.total} post{data.total === 1 ? "" : "s"} match. Open one to see the evidence and record a verdict.</p>
+        <p>
+          {data.total} post{data.total === 1 ? "" : "s"} match
+          {activePlatform ? ` on ${activePlatform}` : ""}. Open one to see the evidence and record a verdict.
+        </p>
       </div>
+
+      {activePlatform && (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#e0e7ff", color: "#3730a3", padding: "4px 12px", borderRadius: "16px", fontSize: "0.85rem", fontWeight: 600, marginBottom: "14px" }}>
+          <span>Filtered by Platform: <b>{activePlatform}</b></span>
+          <button onClick={clearPlatform} style={{ background: "none", border: "none", cursor: "pointer", color: "#3730a3", fontWeight: "bold", padding: 0, marginLeft: "4px" }} title="Clear platform filter">✕</button>
+        </div>
+      )}
       <div className="filters">
         <div className="seg">
           {LEVELS.map((l) => (

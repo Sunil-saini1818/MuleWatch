@@ -230,6 +230,37 @@ def _img_url(v):
     return str(v or "")
 
 
+def unwrap_aggregator_url(url: str) -> tuple[str, str]:
+    """Unpack Google Images (imgres), Facebook redirect (l.php), and other aggregator wrappers.
+    Returns (unwrapped_url, preferred_image_url)."""
+    try:
+        p = urlparse(url)
+        host = (p.hostname or "").lower()
+        from urllib.parse import parse_qs
+        qs = parse_qs(p.query)
+        # Google Image Search: /imgres?imgurl=...&imgrefurl=...
+        if "google." in host and p.path.startswith("/imgres"):
+            target_page = qs.get("imgrefurl", [""])[0]
+            target_img = qs.get("imgurl", [""])[0]
+            if target_page:
+                return target_page, target_img
+            if target_img:
+                return target_img, target_img
+        # Facebook redirect wrapper: l.facebook.com/l.php?u=...
+        if ("facebook.com" in host or "fb.com" in host) and p.path.startswith("/l.php"):
+            dest = qs.get("u", [""])[0]
+            if dest:
+                return dest, ""
+        # Generic wrappers: ?url= or ?dest= or ?target=
+        for key in ("target", "dest", "destination", "redirect_url"):
+            dest = qs.get(key, [""])[0]
+            if dest and dest.startswith(("http://", "https://")):
+                return dest, ""
+    except Exception:
+        pass
+    return url, ""
+
+
 def platform_for(url: str) -> str:
     host = (urlparse(url).hostname or "").lower().removeprefix("www.").removeprefix("m.")
     for dom, name in PLATFORMS.items():
@@ -264,6 +295,12 @@ def fetch_url(url: str) -> dict:
     url = (url or "").strip()
     if not url:
         raise FetchError("Paste a link to check.")
+
+    # Unpack Google Images or redirect wrappers
+    unwrapped_url, preferred_img = unwrap_aggregator_url(url)
+    if unwrapped_url != url:
+        url = unwrapped_url
+
     guessed = not re.match(r"^[a-z]+://", url, re.I)
     if guessed:
         url = "https://" + url
@@ -299,7 +336,10 @@ def fetch_url(url: str) -> dict:
     lines = [ln.strip() for x in (info["title"], info["text"]) if x for ln in x.splitlines() if ln.strip()]
     text = "\n".join(dict.fromkeys(lines))[:MAX_TEXT]          # title is often repeated in the body
     images, seen = [], set()
-    for src in info["images"]:
+    candidate_images = ([preferred_img] if preferred_img else []) + (info.get("images") or [])
+    for src in candidate_images:
+        if not src:
+            continue
         full = urljoin(final, src)
         if full in seen:
             continue
@@ -348,8 +388,23 @@ def _from_page(page: _Page, final: str) -> dict:
         og_desc = meta.get("og:description") or meta.get("twitter:description") or meta.get("description") or ""
         main = page.text("article") or page.text("main")
         body = main or page.text("body")
+        
+        # Filter out UI / search boilerplate lines (e.g. Google images / search results)
+        clean_lines = []
+        for line in (main or body).splitlines():
+            line_str = line.strip()
+            if not line_str:
+                continue
+            # Drop search engine UI buttons
+            if re.match(r"^(Share|Feedback|Remove result|About|Undo|\d+\s*×\s*\d+|Visit|Images?|Videos?|News|Maps|All|Settings|Tools)$", line_str, re.I):
+                continue
+            if "SafeSearch" in line_str or "explicit images" in line_str:
+                continue
+            clean_lines.append(line_str)
+        cleaned_body = "\n".join(clean_lines)
+
         # keep the meta description first (it's what the poster wrote on most social sites)
-        text = "\n".join(x for x in (og_desc, body[:MAX_TEXT]) if x)
+        text = "\n".join(x for x in (og_desc, cleaned_body[:MAX_TEXT]) if x)
         info = {"title": og_title.strip(), "text": text,
                 "author": meta.get("author") or meta.get("article:author") or meta.get("twitter:creator") or "",
                 "posted_at": meta.get("article:published_time", ""),

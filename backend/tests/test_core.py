@@ -119,3 +119,23 @@ def test_buyer_side_card_data_request():
                "I will pay the rent via UPI tomorrow, please share account details",
                "Which bank is best for a current account for my boutique? Need a current account with UPI QR."):
         assert analyze(ok)["base_score"] < 30, ok
+
+
+def test_state_stats_endpoint():
+    from app.main import state_stats
+    data = state_stats()
+    assert "national" in data
+    assert "states" in data
+    assert data["national"]["totalPosts"] > 0
+    assert "RJ" in data["states"]
+    assert "AR" in data["states"]
+    rj = data["states"]["RJ"]
+    assert rj["name"] == "Rajasthan"
+    assert rj["totalPosts"] > 0
+    assert "criticalMuleAds" in rj
+    assert "verifiedBankAccounts" in rj
+    assert "activeSyndicates" in rj
+    assert "dismissedLowRisk" in rj
+    assert "underReview" in rj
+
+

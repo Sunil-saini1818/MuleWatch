@@ -2,7 +2,7 @@ async function req(path, opts = {}) {
   const r = await fetch(path, opts);
   if (!r.ok) {
     let msg = `${r.status} ${r.statusText}`;
-    try { const d = await r.json(); msg = d.detail || msg; } catch { /* not json */ }
+    try { const d = await r.json(); msg = d.detail || d.message || msg; } catch { /* not json */ }
     throw new Error(msg);
   }
   return r.headers.get("content-type")?.includes("json") ? r.json() : r;
@@ -20,6 +20,7 @@ export const api = {
   takedown: (id) => req(`/api/posts/${id}/takedown`, { method: "POST" }),
   analyze: (form) => req("/api/analyze", { method: "POST", body: form }),
   analyzeUrl: (url, save) => req("/api/analyze/url", json("POST", { url, save })),
+  analyzeQr: (form) => req("/api/analyze/qr", { method: "POST", body: form }),
   graph: (params = {}) => req("/api/graph?" + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== "" && v != null))),
   alerts: () => req("/api/alerts"),
   alertsSeen: () => req("/api/alerts/seen", { method: "POST" }),
@@ -29,9 +30,26 @@ export const api = {
   sources: () => req("/api/sources"),
   addSource: (kind, url, name) => req("/api/sources", json("POST", { kind, url, name })),
   toggleSource: (id, enabled) => req(`/api/sources/${id}`, json("PATCH", { enabled })),
+  retrySource: (id) => req(`/api/sources/${id}/retry`, { method: "POST" }),
+  delSource: (id) => req(`/api/sources/${id}`, { method: "DELETE" }),
   crawl: () => req("/api/crawl", { method: "POST" }),
   bot: () => req("/api/bot"),
   unlinkAlerts: () => req("/api/bot/alerts", { method: "DELETE" }),
+  telegramStatus: () => req("/api/telegram/status"),
+  telegramPoller: () => req("/api/telegram/poller"),
+  telegramPollNow: (minutes = 10) => req("/api/telegram/manual-sync", json("POST", { minutes })),
+  telegramManualSync: (minutes = 10) => req("/api/telegram/manual-sync", json("POST", { minutes })),
+  examineTelegram: (data) => req("/api/telegram/examine", json("POST", data)),
+  platformStats: () => req("/api/platforms/stats"),
+  cases: (params = {}) => req("/api/cases?" + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== "" && v != null))),
+  updateCaseStatus: (id, status) => req(`/api/cases/${id}/status`, json("POST", { status })),
+  dispatchQueue: () => req("/api/dispatch/queue"),
+  dispatchI4C: (case_id) => req("/api/dispatch/i4c", json("POST", { case_id })),
+  dispatchBankLien: (case_id, bank = "Partner Nodal Bank", target_account = "") =>
+    req("/api/dispatch/bank-lien", json("POST", { case_id, bank, target_account })),
+  stateStats: () => req("/api/stats/states"),
+  rajasthanStats: () => req("/api/stats/rajasthan-districts"),
+  get: (path) => req(path.startsWith("/api") ? path : `/api${path}`),
 };
 
 export const LEVELS = ["Critical", "High", "Medium", "Low"];

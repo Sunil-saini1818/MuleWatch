@@ -25,8 +25,8 @@ def term_multiplier(term: str, stats: dict) -> float:
     return round(0.3 + 1.2 * precision, 3)
 
 
-# "I will give 10000 for ...", "5k dunga account ke liye", "paying ₹2000 per card"
-PAY_OFFER = re.compile(r"\b(?:give|pay|paying|offer|offering|dunga|denge|milenge?)\b[^.\n]{0,15}?(?:₹|rs\.?|inr)?\s?\d[\d,]*\s?k?\b"
+# "I will give 10000 for ...", "5k dunga account ke liye", "paying ₹2000 per card", "can pay Rs 10000"
+PAY_OFFER = re.compile(r"\b(?:give|pay|paying|can pay|will pay|offer|offering|dunga|denge|milenge?)\b[^.\n]{0,15}?(?:₹|rs\.?|inr)?\s?\d[\d,]*\s?k?\b"
                        r"|(?:₹|rs\.?|inr)?\s?\d[\d,]*\s?k?\s+(?:dunga|denge|milenge?)\b", re.I)
 
 

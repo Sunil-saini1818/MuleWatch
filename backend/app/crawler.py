@@ -25,7 +25,8 @@ from .db import Post, SessionLocal, Source
 from .pipeline import ingest
 
 CRAWL_INTERVAL = float(os.getenv("CRAWL_INTERVAL", "3"))
-FORUM_URL = os.getenv("FORUM_URL", "http://localhost:8100")
+FORUM_URL = os.getenv("CHARCHA_FORUM_URL") or os.getenv("FORUM_URL") or "http://103.155.85.18:8100"
+LOCAL_BACKUP_URL = os.getenv("LOCAL_FORUM_URL", "http://localhost:8100")
 MOD_TOKEN = os.getenv("FORUM_MOD_TOKEN", "skit-cybercell-2026")
 UA = {"User-Agent": "MuleWatch-Crawler/1.0 (+research; hackathon demo)"}
 MAX_IMAGE = 6 * 1024 * 1024
@@ -37,13 +38,36 @@ def status():
     return dict(_status)
 
 
-def _get(url, **kw):
-    return requests.get(url, headers=UA, timeout=8, **kw)
+def _get(url, timeout=5.0, retries=2, fallback_to_local=True, **kw):
+    """Resilient HTTP GET with retry count, 5s timeout, and dynamic local fallback."""
+    last_exc = None
+    sess = requests.Session()
+    sess.trust_env = False  # Prevent ambient proxies from interfering with direct IP access
+    for attempt in range(max(1, retries)):
+        try:
+            return sess.get(url, headers=UA, timeout=timeout, **kw)
+        except (requests.ConnectionError, requests.Timeout) as e:
+            last_exc = e
+            # If an external IP / server is failing or timing out, dynamically fallback to local forum
+            if fallback_to_local and ("103.155.85.18" in url or "remote" in url):
+                local_url = re.sub(r"https?://103\.155\.85\.18:\d+", LOCAL_BACKUP_URL.rstrip("/"), url)
+                try:
+                    res = sess.get(local_url, headers=UA, timeout=timeout, **kw)
+                    if res.ok:
+                        return res
+                except Exception:
+                    pass
+            time.sleep(0.3 * (attempt + 1))
+        except requests.RequestException as e:
+            last_exc = e
+            break
+    if last_exc:
+        raise last_exc
 
 
 def _download_image(url: str, name: str) -> str:
     try:
-        r = _get(url, stream=True)
+        r = _get(url, stream=True, timeout=5.0)
         if not r.ok or not r.headers.get("content-type", "").startswith("image/"):
             return ""
         ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif"}.get(
@@ -85,12 +109,81 @@ def _forum_cards(listing_html: str) -> dict:
     return cards
 
 
+def _crawl_forum_json(session, base: str, posts_list: list) -> int:
+    """Ingest posts returned directly as JSON from /api/posts or /feed."""
+    known = {p.remote_id for p in session.query(Post.remote_id).filter(Post.source == "forum").all()}
+    new = 0
+    for item in posts_list:
+        pid = str(item.get("id"))
+        rid = f"{base}#{pid}"
+        if rid in known:
+            continue
+        title = item.get("title", "")
+        body = item.get("body", "")
+        author = item.get("username", "") or "Charcha User"
+        text = f"{title}\n{body}".strip()
+        img = item.get("image", "")
+        image_path = _download_image(urljoin(base + "/", img), f"forum_{pid}") if img else ""
+        meta = item.get("author_metadata")
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except Exception:
+                meta = {}
+        p = ingest(session, text=text, platform="Charcha forum", author=author,
+                   url=f"{base}/p/{pid}", image_path=image_path,
+                   posted_at=_parse_dt(item.get("created", "")), source="forum", recompute=False,
+                   author_metadata=meta or {})
+        p.remote_id = rid
+        known.add(rid)
+        new += 1
+    return new
+
+
 def crawl_forum(session, src: Source) -> int:
-    """New posts and new comments. Each comment is scored as its own case, because sellers often
-    hide their ads under ordinary posts."""
+    """New posts and new comments from Charcha forum.
+    Tries primary routes: /new, /api/posts, /feed, /
+    Falls back gracefully to local demo forum if external IP is down."""
     base = src.url.rstrip("/")
-    listing = _get(base + "/new")
-    listing.raise_for_status()
+    listing = None
+    routes = ["/new", "/api/posts", "/feed", "/"]
+    last_exc = None
+
+    for route in routes:
+        try:
+            r = _get(base + route, timeout=5.0, retries=2)
+            if r.ok:
+                listing = r
+                break
+        except Exception as e:
+            last_exc = e
+
+    # If external IP fails, attempt local fallback
+    if not listing and ("103.155.85.18" in base or not listing):
+        for route in routes:
+            try:
+                r = _get(LOCAL_BACKUP_URL.rstrip("/") + route, timeout=3.0, retries=1)
+                if r.ok:
+                    listing = r
+                    base = LOCAL_BACKUP_URL.rstrip("/")
+                    break
+            except Exception:
+                pass
+
+    if not listing:
+        if isinstance(last_exc, (requests.ConnectionError, requests.Timeout)):
+            raise requests.ConnectionError("Server unreachable / connection timeout")
+        raise last_exc or RuntimeError("Forum endpoint unreachable")
+
+    # If endpoint returned JSON (e.g. from /api/posts or /feed)
+    if "application/json" in listing.headers.get("content-type", ""):
+        try:
+            data = listing.json()
+            if isinstance(data, list):
+                return _crawl_forum_json(session, base, data)
+        except Exception:
+            pass
+
     cards = _forum_cards(listing.text)
     known = {p.remote_id for p in session.query(Post.remote_id).filter(Post.source == "forum").all()}
     new = 0
@@ -106,13 +199,19 @@ def crawl_forum(session, src: Source) -> int:
         seen_comments = sum(1 for k in known if k.startswith(rid + "#c"))
         if not need_post and ncomments <= seen_comments:
             continue
-        page = _get(f"{base}/p/{pid}")
-        if not page.ok:
+        try:
+            page = _get(f"{base}/p/{pid}", timeout=5.0, retries=1)
+            if not page.ok:
+                continue
+        except Exception:
             continue
         m = re.search(r'<script type="application/ld\+json">(.*?)</script>', page.text, re.S)
         if not m:
             continue
-        d = json.loads(m.group(1))
+        try:
+            d = json.loads(m.group(1))
+        except Exception:
+            continue
         title = d.get("headline", "")
         community = d.get("isPartOf", {}).get("name", "") if isinstance(d.get("isPartOf"), dict) else ""
         platform = "Charcha forum" + (f" · {community}" if community else "")
@@ -123,9 +222,11 @@ def crawl_forum(session, src: Source) -> int:
             image = ""
             if d.get("image"):
                 image = _download_image(urljoin(base + "/", d["image"]), f"forum_{pid}_{fp}")
+            author_meta = d.get("author_metadata") or (d.get("author") or {}).get("author_metadata") or {}
             p = ingest(session, text=text, platform=platform, author=(d.get("author") or {}).get("name", ""),
                        url=f"{base}/p/{pid}", image_path=image,
-                       posted_at=_parse_dt(d.get("datePublished", "")), source="forum", recompute=False)
+                       posted_at=_parse_dt(d.get("datePublished", "")), source="forum", recompute=False,
+                       author_metadata=author_meta)
             p.remote_id = rid
             known.add(rid)
             new += 1
@@ -135,10 +236,12 @@ def crawl_forum(session, src: Source) -> int:
             crid = f"{rid}#c{cm.get('identifier')}"
             if crid in known or not (cm.get("text") or "").strip():
                 continue
+            cm_meta = cm.get("author_metadata") or (cm.get("author") or {}).get("author_metadata") or {}
             c = ingest(session, text=cm["text"], platform=platform + " · comment",
                        author=(cm.get("author") or {}).get("name", ""),
                        url=cm.get("url") or f"{base}/p/{pid}#c{cm.get('identifier')}",
-                       posted_at=_parse_dt(cm.get("dateCreated", "")), source="forum", recompute=False)
+                       posted_at=_parse_dt(cm.get("dateCreated", "")), source="forum", recompute=False,
+                       author_metadata=cm_meta)
             c.remote_id = crid
             c.reasons = (c.reasons or []) + [f"Posted as a comment on “{title[:80]}”"]
             known.add(crid)
@@ -150,7 +253,7 @@ def crawl_forum(session, src: Source) -> int:
 
 def crawl_telegram(session, src: Source) -> int:
     channel = src.url.rstrip("/").split("/")[-1].lstrip("@")
-    r = _get(f"https://t.me/s/{channel}")
+    r = _get(f"https://t.me/s/{channel}", timeout=5.0, retries=2, fallback_to_local=False)
     r.raise_for_status()
     known = {p.remote_id for p in session.query(Post.remote_id).filter(Post.source == "telegram").all()}
     new = 0
@@ -217,8 +320,10 @@ def crawl_once() -> int:
                 total += n
                 if src.kind == "forum" and _status.get("comments_unsupported"):
                     src.last_status += " · comments not readable: update the forum on the server"
+            except (requests.ConnectionError, requests.Timeout):
+                src.last_status = "offline · Server Unreachable (timeout)"
             except Exception as e:
-                src.last_status = f"error: {type(e).__name__}: {str(e)[:120]}"
+                src.last_status = f"degraded · {type(e).__name__}: {str(e)[:50]}"
                 _status["errors"] += 1
             src.last_crawl = datetime.utcnow()
             s.commit()
@@ -245,13 +350,26 @@ def start():
 
 
 def ensure_default_sources():
-    """The default forum source always follows FORUM_URL from .env."""
+    """Ensure both the primary Charcha forum (103.155.85.18:8100) and local demo forum are registered and monitored."""
     with SessionLocal() as s:
+        # 1. Primary Live Charcha Forum
+        primary_url = FORUM_URL.rstrip("/")
         src = s.query(Source).filter_by(kind="forum", name="Charcha public forum").first()
         if not src:
-            s.add(Source(kind="forum", name="Charcha public forum", url=FORUM_URL))
-        elif src.url != FORUM_URL:
-            src.url, src.last_status = FORUM_URL, "address changed"
+            src = s.query(Source).filter(Source.url.like("%103.155.85.18%")).first()
+        if not src:
+            s.add(Source(kind="forum", name="Charcha public forum", url=primary_url, enabled=True))
+        else:
+            src.url = primary_url
+            src.enabled = True
+
+        # 2. Local fallback / demo forum
+        if LOCAL_BACKUP_URL and LOCAL_BACKUP_URL.rstrip("/") != primary_url:
+            local_src = s.query(Source).filter_by(kind="forum", name="Charcha local forum").first()
+            if not local_src:
+                s.add(Source(kind="forum", name="Charcha local forum", url=LOCAL_BACKUP_URL.rstrip("/"), enabled=True))
+            else:
+                local_src.enabled = True
         s.commit()
 
 

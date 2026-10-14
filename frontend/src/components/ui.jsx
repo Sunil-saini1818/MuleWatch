@@ -19,6 +19,7 @@ export function Icon({ name, size = 18 }) {
     link: <><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1" /></>,
     plus: <path d="M12 5v14M5 12h14" />,
     refresh: <><path d="M20 11a8 8 0 10-2.3 5.7" /><path d="M20 5v6h-6" /></>,
+    qrcode: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 21v-3h3M21 14v3h-3" /></>,
   }[name];
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
@@ -135,7 +136,7 @@ export function ScoreBreakdown({ scores = {}, llm }) {
     ["Multilingual text model", scores.ml, scores.ml_features?.length ? `strongest signals: ${scores.ml_features.join(", ")}` : ""],
     ["Image analysis", scores.image, scores.image_cues?.length ? `seen in image: ${scores.image_cues.join(", ")}` : "no banking material in image"],
   ];
-  if (scores.llm != null) rows.push(["AI analyst (Claude)", scores.llm, llm?.rationale || ""]);
+  if (scores.llm != null) rows.push(["AI analyst", scores.llm, llm?.rationale || ""]);
   return (
     <div className="breakdown">
       {rows.map(([name, v, note]) => (
@@ -165,6 +166,7 @@ export function PostRow({ p, fresh, why }) {
           {p.platform?.endsWith("· comment") && <span className="chip chip-cmt">comment</span>}
           {p.reports > 0 && <span className="chip chip-cit">reported by {p.reports} {p.reports === 1 ? "citizen" : "citizens"}</span>}
           {p.cluster_size > 1 && <span className="chip chip-ring">ring of {p.cluster_size}</span>}
+          {p.has_ocr && <span className="chip chip-ocr">OCR</span>}
           {p.label === "confirmed" && <span className="chip chip-ok">confirmed</span>}
           {p.label === "false_positive" && <span className="chip">false positive</span>}
           {p.takedown && <span className="chip chip-td">takedown requested</span>}
@@ -180,4 +182,19 @@ export function PostRow({ p, fresh, why }) {
 
 export function Empty({ title, children }) {
   return <div className="empty"><strong>{title}</strong>{children && <p>{children}</p>}</div>;
+}
+
+export function formatStatusBadge(status) {
+  if (!status) return "Waiting";
+  const s = String(status);
+  if (s.includes("HTTPConnectionPool") || s.includes("Max retries") || s.includes("ConnectionRefused") || s.startsWith("offline")) {
+    return "Offline / Retrying";
+  }
+  if (s.includes("degraded") || s.includes("warning") || s.includes("timeout") || s.includes("Connecting")) {
+    return "Degraded / Connecting...";
+  }
+  if (s.startsWith("ok")) {
+    return s.length > 32 ? "Operational · Connected" : s;
+  }
+  return s.length > 28 ? s.slice(0, 25) + "…" : s;
 }

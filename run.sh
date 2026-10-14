@@ -121,7 +121,10 @@ if [ "$LOCAL_FORUM" = 1 ]; then
   (cd forum && FORUM_MOD_TOKEN="$(grep -E '^FORUM_MOD_TOKEN=' "$ROOT/.env" | cut -d= -f2-)" \
      uvicorn forum_app:app --host 0.0.0.0 --port "$FPORT" --log-level warning) &
   PIDS+=($!)
-  export FORUM_URL="http://localhost:$FPORT"
+  export LOCAL_FORUM_URL="http://localhost:$FPORT"
+  if [ -z "${FORUM_URL:-}" ] || [ "${FORUM_URL}" = "http://localhost:8100" ]; then
+    export FORUM_URL="${FORUM_URL:-http://localhost:$FPORT}"
+  fi
   sleep 1
 fi
 

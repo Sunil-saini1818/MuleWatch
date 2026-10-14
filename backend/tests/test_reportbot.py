@@ -39,7 +39,16 @@ def upd(chat, text=None, **extra):
 
 
 def setup_module():
+    from app import config, llm
+    config.GEMINI_API_KEY = ""
+    config.ANTHROPIC_API_KEY = ""
+    llm.GEMINI_API_KEY = ""
+    llm.ANTHROPIC_API_KEY = ""
     init_db()
+    with SessionLocal() as s:
+        s.query(Report).delete()
+        s.query(Post).delete()
+        s.commit()
     if not model().trained:
         retrain(base_training_set())
 

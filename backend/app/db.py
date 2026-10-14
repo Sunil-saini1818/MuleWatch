@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer,
-                        String, Text, create_engine)
+                        String, Text, create_engine, text)
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from .config import DATABASE_URL
@@ -62,6 +62,11 @@ class Post(Base):
     label = Column(String(20), nullable=True)  # investigator verdict: confirmed | false_positive
     train_label = Column(Integer, nullable=True)  # labelled training data (1 suspicious / 0 benign)
     evidence_hash = Column(String(64), default="")
+    author_metadata = Column(JSON, default=dict)
+    qr_metadata = Column(JSON, default=dict)
+    source_platform = Column(String(40), default="charcha", index=True)
+    status = Column(String(30), default="flagged_review", index=True)
+    dispatch_metadata = Column(JSON, default=dict)
 
 
 class WatchItem(Base):
@@ -149,3 +154,33 @@ class Source(Base):
 
 def init_db():
     Base.metadata.create_all(engine)
+    if DATABASE_URL.startswith("sqlite"):
+        try:
+            with engine.connect() as con:
+                res = con.execute(text("PRAGMA table_info(posts)")).fetchall()
+                cols = {r[1] for r in res}
+                if "author_metadata" not in cols:
+                    con.execute(text("ALTER TABLE posts ADD COLUMN author_metadata JSON DEFAULT '{}'"))
+                    con.commit()
+                if "qr_metadata" not in cols:
+                    con.execute(text("ALTER TABLE posts ADD COLUMN qr_metadata JSON DEFAULT '{}'"))
+                    con.commit()
+                if "source_platform" not in cols:
+                    con.execute(text("ALTER TABLE posts ADD COLUMN source_platform VARCHAR(40) DEFAULT 'charcha'"))
+                    con.commit()
+                if "status" not in cols:
+                    con.execute(text("ALTER TABLE posts ADD COLUMN status VARCHAR(30) DEFAULT 'flagged_review'"))
+                    con.commit()
+                if "dispatch_metadata" not in cols:
+                    con.execute(text("ALTER TABLE posts ADD COLUMN dispatch_metadata JSON DEFAULT '{}'"))
+                    con.commit()
+                # Ensure existing posts have an appropriate source_platform
+                con.execute(text("UPDATE posts SET source_platform = 'telegram' WHERE source = 'telegram' OR lower(platform) LIKE '%telegram%'"))
+                con.execute(text("UPDATE posts SET source_platform = 'instagram' WHERE lower(platform) LIKE '%instagram%' OR lower(platform) LIKE '%insta%'"))
+                con.execute(text("UPDATE posts SET source_platform = 'twitter' WHERE lower(platform) LIKE '%twitter%' OR lower(platform) LIKE '% x %' OR lower(platform) LIKE 'x %' OR lower(platform) LIKE '%x.com%' OR lower(platform) LIKE '%t.co%'"))
+                con.execute(text("UPDATE posts SET source_platform = 'charcha' WHERE source_platform IS NULL OR source_platform = ''"))
+                con.execute(text("UPDATE posts SET status = 'confirmed_enforcement' WHERE label = 'confirmed' AND (status IS NULL OR status = '' OR status = 'flagged_review')"))
+                con.execute(text("UPDATE posts SET status = 'flagged_review' WHERE status IS NULL OR status = ''"))
+                con.commit()
+        except Exception:
+            pass

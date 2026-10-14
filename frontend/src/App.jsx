@@ -7,13 +7,19 @@ import Analyze from "./pages/Analyze";
 import CaseDetail from "./pages/CaseDetail";
 import Cases from "./pages/Cases";
 import Dashboard from "./pages/Dashboard";
+import DispatchQueue from "./pages/DispatchQueue";
+import LinkedPlatforms from "./pages/LinkedPlatforms";
+import NationalIntelligence from "./pages/NationalIntelligence";
 import Network from "./pages/Network";
 import Sources from "./pages/Sources";
 import Watchlist from "./pages/Watchlist";
 
 const NAV = [
   ["/", "Command center", "radar"],
+  ["/intel", "National intelligence", "shield"],
   ["/cases", "Cases", "cases"],
+  ["/dispatch", "Cyber Cell Dispatch", "shield"],
+  ["/linked-platforms", "Linked platforms", "link"],
   ["/network", "Seller network", "graph"],
   ["/analyze", "Check a post", "scan"],
   ["/watchlist", "Watchlist", "eye"],
@@ -30,14 +36,24 @@ function MonitorStatus() {
     return () => clearInterval(t);
   }, [version]);
   const active = src?.sources?.filter((s) => s.enabled) || [];
-  const err = active.some((s) => s.last_status?.startsWith("error"));
+  const unreachable = active.filter((s) => s.last_status?.startsWith("offline") || s.last_status?.startsWith("error"));
+  const allDown = active.length > 0 && unreachable.length === active.length;
   const last = active.map((s) => s.last_crawl).filter(Boolean).sort().pop();
   const oldForum = active.some((s) => s.last_status?.includes("update the forum"));
+  const isHealthy = connected && !allDown;
   return (
-    <Link to="/sources" className={`monitor ${connected && !err && !oldForum ? "on" : "off"}`}>
+    <Link to="/sources" className={`monitor ${isHealthy ? "on" : "off"}`}>
       <span className="pulse" />
       <span>
-        {connected ? (err ? "Source unreachable" : oldForum ? "Comments not readable: update the forum" : `Monitoring ${active.length} source${active.length === 1 ? "" : "s"}`) : "Reconnecting…"}
+        {connected ? (
+          allDown
+            ? "Sources offline"
+            : unreachable.length > 0
+            ? `Monitoring (${unreachable.length} degraded)`
+            : oldForum
+            ? "Comments not readable: update forum"
+            : `Monitoring Active (${active.length} source${active.length === 1 ? "" : "s"})`
+        ) : "Reconnecting…"}
         {last && <small>last crawl {timeAgo(last)}</small>}
       </span>
     </Link>
@@ -65,10 +81,23 @@ function Toasts() {
 }
 
 export default function App() {
-  const { soundOn, enableSound } = useLive();
+  const { soundOn, enableSound, version } = useLive();
   const loc = useLocation();
   const [menu, setMenu] = useState(false);
+  const [dispatchCount, setDispatchCount] = useState(0);
+
   useEffect(() => setMenu(false), [loc.pathname]);
+
+  useEffect(() => {
+    const fetchDispatchCount = () => {
+      api.dispatchQueue()
+        .then((res) => setDispatchCount(res.total || 0))
+        .catch(() => {});
+    };
+    fetchDispatchCount();
+    const t = setInterval(fetchDispatchCount, 4000);
+    return () => clearInterval(t);
+  }, [version]);
 
   return (
     <div className="shell">
@@ -80,7 +109,13 @@ export default function App() {
         <nav>
           {NAV.map(([to, label, icon]) => (
             <NavLink key={to} to={to} end={to === "/"} className="nav">
-              <Icon name={icon} /> {label}
+              <Icon name={icon} />
+              <span style={{ flex: 1 }}>{label}</span>
+              {to === "/dispatch" && dispatchCount > 0 && (
+                <span className="nav-dispatch-badge" title={`${dispatchCount} cases pending dispatch`}>
+                  {dispatchCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -101,12 +136,22 @@ export default function App() {
         <main className="page">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/intel" element={<NationalIntelligence />} />
+            <Route path="/national-intelligence" element={<NationalIntelligence />} />
             <Route path="/cases" element={<Cases />} />
+            <Route path="/dispatch" element={<DispatchQueue />} />
+            <Route path="/enforcement" element={<DispatchQueue />} />
+            <Route path="/cyber-cell-dispatch" element={<DispatchQueue />} />
+            <Route path="/linked-platforms" element={<LinkedPlatforms />} />
+            <Route path="/platforms" element={<LinkedPlatforms />} />
             <Route path="/case/:id" element={<CaseDetail />} />
             <Route path="/network" element={<Network />} />
+            <Route path="/seller-network" element={<Network />} />
             <Route path="/analyze" element={<Analyze />} />
+            <Route path="/check-a-post" element={<Analyze />} />
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/sources" element={<Sources />} />
+            <Route path="/monitored-sources" element={<Sources />} />
             <Route path="*" element={<p>Page not found. <Link to="/">Back to the command center</Link></p>} />
           </Routes>
         </main>

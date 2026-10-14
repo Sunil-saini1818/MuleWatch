@@ -33,11 +33,19 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
 ALERT_MIN_LEVEL = os.getenv("ALERT_MIN_LEVEL", "Critical")   # Critical | High
 
+# Telegram MTProto / API Client
+TELEGRAM_API_ID = int(os.getenv("TELEGRAM_API_ID", "21942717") or "21942717")
+TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH", "afd1250af87dd7bbd9c398a640563c4")
+APP_TITLE = os.getenv("APP_TITLE", "SentinelAI")
+TELEGRAM_POLL_INTERVAL = int(os.getenv("TELEGRAM_POLL_INTERVAL", "600"))
+
 # Citizen reporting bot (Telegram). Falls back to the alert bot's token when not set.
 REPORT_BOT_TOKEN = os.getenv("REPORT_BOT_TOKEN", "") or TELEGRAM_BOT_TOKEN
 REPORTS_PER_HOUR = int(os.getenv("REPORTS_PER_HOUR", "30"))
 
-# Optional LLM second opinion (Claude). Leave empty to run fully offline.
+# Optional LLM second opinion (Gemini or Claude). Leave empty to run fully offline.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "") or "gemini-3.5-flash"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "claude-haiku-5-5")
 

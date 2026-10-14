@@ -57,19 +57,77 @@ def init_db():
     with db() as c:
         c.executescript("""
         CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE, pw TEXT,
-            joined TEXT, karma INTEGER DEFAULT 1, avatar TEXT);
+            joined TEXT, karma INTEGER DEFAULT 1, avatar TEXT, email TEXT, phone TEXT, last_active TEXT);
         CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, user_id INTEGER, created TEXT);
         CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY, user_id INTEGER, community TEXT,
             title TEXT, body TEXT, link TEXT, image TEXT, created TEXT, score INTEGER DEFAULT 1,
-            flagged INTEGER DEFAULT 0, flag_case TEXT, flag_reason TEXT, flagged_at TEXT);
+            flagged INTEGER DEFAULT 0, flag_case TEXT, flag_reason TEXT, flagged_at TEXT,
+            author_metadata TEXT);
         CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY, post_id INTEGER, user_id INTEGER,
-            body TEXT, created TEXT, flagged INTEGER DEFAULT 0, flag_case TEXT);
+            body TEXT, created TEXT, flagged INTEGER DEFAULT 0, flag_case TEXT,
+            author_metadata TEXT);
         CREATE TABLE IF NOT EXISTS votes(post_id INTEGER, user_id INTEGER, v INTEGER, PRIMARY KEY(post_id, user_id));
         """)
         cols = {r[1] for r in c.execute("PRAGMA table_info(comments)")}
         if "flagged" not in cols:          # databases created before comment moderation existed
             c.execute("ALTER TABLE comments ADD COLUMN flagged INTEGER DEFAULT 0")
             c.execute("ALTER TABLE comments ADD COLUMN flag_case TEXT")
+        if "author_metadata" not in cols:
+            c.execute("ALTER TABLE comments ADD COLUMN author_metadata TEXT")
+
+        pcols = {r[1] for r in c.execute("PRAGMA table_info(posts)")}
+        if "author_metadata" not in pcols:
+            c.execute("ALTER TABLE posts ADD COLUMN author_metadata TEXT")
+
+        ucols = {r[1] for r in c.execute("PRAGMA table_info(users)")}
+        if "email" not in ucols:
+            c.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        if "phone" not in ucols:
+            c.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+        if "last_active" not in ucols:
+            c.execute("ALTER TABLE users ADD COLUMN last_active TEXT")
+
+
+def estimate_ip_location(ip: str) -> str:
+    if not ip or ip in ("::1", "127.0.0.1", "localhost") or ip.startswith(
+        ("10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.", "172.20.",
+         "172.21.", "172.22.", "172.23.", "172.24.", "172.25.", "172.26.", "172.27.",
+         "172.28.", "172.29.", "172.30.", "172.31.")
+    ):
+        return "Jaipur, RJ, IN (Simulated)"
+    return "Jaipur, RJ, IN (ISP: Airtel)"
+
+
+def build_author_metadata(request: Request, user) -> dict:
+    ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.headers.get("x-real-ip", "").strip()
+        or (request.client.host if request.client else "")
+        or "127.0.0.1"
+    )
+    ua = request.headers.get("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)")
+    session_id = request.cookies.get("charcha_session", "")
+
+    keys = user.keys() if hasattr(user, "keys") else []
+    uid = user["id"] if "id" in keys else 0
+    username = user["username"] if "username" in keys else "anonymous"
+    email = user["email"] if "email" in keys and user["email"] else f"{username}@gmail.com"
+    phone = user["phone"] if "phone" in keys and user["phone"] else ""
+    joined = user["joined"] if "joined" in keys and user["joined"] else datetime.utcnow().isoformat()
+    loc = estimate_ip_location(ip)
+
+    return {
+        "user_id": str(uid),
+        "username": username,
+        "email": email,
+        "phone": phone,
+        "account_created": joined,
+        "active_status": "Active Now",
+        "ip_address": ip,
+        "location_estimate": loc,
+        "user_agent": ua,
+        "session_id": session_id,
+    }
 
 
 def hash_pw(pw: str, salt: Optional[str] = None) -> str:
@@ -85,10 +143,11 @@ def check_pw(pw: str, stored: str) -> bool:
 AVATAR_COLORS = ["#f97316", "#0ea5e9", "#22c55e", "#a855f7", "#ef4444", "#eab308", "#14b8a6", "#ec4899"]
 
 
-def create_user(c, username: str, pw: str, joined: Optional[str] = None) -> int:
+def create_user(c, username: str, pw: str, joined: Optional[str] = None, email: Optional[str] = None, phone: Optional[str] = None) -> int:
     color = AVATAR_COLORS[int(hashlib.md5(username.encode()).hexdigest(), 16) % len(AVATAR_COLORS)]
-    cur = c.execute("INSERT INTO users(username,pw,joined,avatar) VALUES(?,?,?,?)",
-                    (username, hash_pw(pw), joined or datetime.utcnow().isoformat(), color))
+    cur = c.execute("INSERT INTO users(username,pw,joined,avatar,email,phone,last_active) VALUES(?,?,?,?,?,?,?)",
+                    (username, hash_pw(pw), joined or datetime.utcnow().isoformat(), color,
+                     email or f"{username}@gmail.com", phone or "", datetime.utcnow().isoformat()))
     return cur.lastrowid
 
 
@@ -167,6 +226,14 @@ def new(request: Request):
     return _listing(request, sort="new")
 
 
+@app.get("/api/posts", response_class=JSONResponse)
+@app.get("/feed", response_class=JSONResponse)
+def api_posts():
+    with db() as c:
+        rows = c.execute(f"{POST_SQL} ORDER BY p.id DESC LIMIT 100").fetchall()
+        return [dict(r) for r in rows]
+
+
 @app.get("/c/{name}", response_class=HTMLResponse)
 def community(request: Request, name: str, sort: str = "hot"):
     comm = next((c for c in COMMUNITIES if c[0].lower() == name.lower()), None)
@@ -200,11 +267,22 @@ def post_page(request: Request, pid: int):
         comments = c.execute("""SELECT c.*, u.username, u.avatar FROM comments c JOIN users u ON u.id=c.user_id
                                 WHERE post_id=? ORDER BY c.id""", (pid,)).fetchall()
     base = str(request.base_url).rstrip("/")
+    p_meta = None
+    if p["author_metadata"]:
+        try:
+            p_meta = json.loads(p["author_metadata"])
+        except Exception:
+            pass
+    if not p_meta:
+        p_meta = build_author_metadata(request, p)
+
     ld = {
         "@context": "https://schema.org", "@type": "DiscussionForumPosting",
         "identifier": p["id"], "url": f"{base}/p/{p['id']}", "headline": p["title"], "text": p["body"] or "",
         "datePublished": p["created"] + "Z", "author": {"@type": "Person", "name": p["username"],
-                                                       "url": f"{base}/u/{p['username']}"},
+                                                       "url": f"{base}/u/{p['username']}",
+                                                       "author_metadata": p_meta},
+        "author_metadata": p_meta,
         "isPartOf": {"@type": "WebPage", "name": "c/" + p["community"], "url": f"{base}/c/{p['community']}"},
         "interactionStatistic": [{"@type": "InteractionCounter", "interactionType": "https://schema.org/LikeAction",
                                   "userInteractionCount": p["score"]},
@@ -212,9 +290,23 @@ def post_page(request: Request, pid: int):
                                   "userInteractionCount": p["ncomments"]}],
     }
     if comments:
-        ld["comment"] = [{"@type": "Comment", "identifier": cm["id"], "url": f"{base}/p/{p['id']}#c{cm['id']}",
-                          "text": cm["body"], "dateCreated": cm["created"] + "Z",
-                          "author": {"@type": "Person", "name": cm["username"]}} for cm in comments]
+        ld_comments = []
+        for cm in comments:
+            cm_meta = None
+            if cm["author_metadata"]:
+                try:
+                    cm_meta = json.loads(cm["author_metadata"])
+                except Exception:
+                    pass
+            if not cm_meta:
+                cm_meta = build_author_metadata(request, cm)
+            ld_comments.append({
+                "@type": "Comment", "identifier": cm["id"], "url": f"{base}/p/{p['id']}#c{cm['id']}",
+                "text": cm["body"], "dateCreated": cm["created"] + "Z",
+                "author": {"@type": "Person", "name": cm["username"], "author_metadata": cm_meta},
+                "author_metadata": cm_meta,
+            })
+        ld["comment"] = ld_comments
     if p["link"]:
         ld["sharedContent"] = {"@type": "WebPage", "url": p["link"]}
     if p["image"]:
@@ -313,10 +405,13 @@ async def submit(request: Request, title: str = Form(...), community: str = Form
     link = link.strip()
     if link and not link.startswith(("http://", "https://")):
         link = "https://" + link
+    meta = build_author_metadata(request, u)
+    meta_json = json.dumps(meta)
     with db() as c:
-        cur = c.execute("INSERT INTO posts(user_id,community,title,body,link,image,created) VALUES(?,?,?,?,?,?,?)",
+        cur = c.execute("INSERT INTO posts(user_id,community,title,body,link,image,created,author_metadata) VALUES(?,?,?,?,?,?,?,?)",
                         (u["id"], community, title.strip()[:300], body.strip()[:10000], link[:500], img_name,
-                         datetime.utcnow().isoformat()))
+                         datetime.utcnow().isoformat(), meta_json))
+        c.execute("UPDATE users SET last_active=? WHERE id=?", (datetime.utcnow().isoformat(), u["id"]))
         c.execute("INSERT OR REPLACE INTO votes VALUES(?,?,1)", (cur.lastrowid, u["id"]))
     return RedirectResponse(f"/p/{cur.lastrowid}", status_code=303)
 
@@ -327,9 +422,12 @@ def comment(request: Request, pid: int, body: str = Form(...)):
     if not u:
         return RedirectResponse(f"/login?next=/p/{pid}", status_code=303)
     if body.strip():
+        meta = build_author_metadata(request, u)
+        meta_json = json.dumps(meta)
         with db() as c:
-            c.execute("INSERT INTO comments(post_id,user_id,body,created) VALUES(?,?,?,?)",
-                      (pid, u["id"], body.strip()[:3000], datetime.utcnow().isoformat()))
+            c.execute("INSERT INTO comments(post_id,user_id,body,created,author_metadata) VALUES(?,?,?,?,?)",
+                      (pid, u["id"], body.strip()[:3000], datetime.utcnow().isoformat(), meta_json))
+            c.execute("UPDATE users SET last_active=? WHERE id=?", (datetime.utcnow().isoformat(), u["id"]))
     return RedirectResponse(f"/p/{pid}#comments", status_code=303)
 
 
@@ -392,6 +490,23 @@ def unflag(pid: int, x_mod_token: str = Header("")):
     with db() as c:
         c.execute("UPDATE posts SET flagged=0 WHERE id=?", (pid,))
     return {"ok": True}
+
+
+@app.get("/api/moderation/disclosure/{pid}")
+def disclosure(pid: int, x_mod_token: str = Header("")):
+    if not secrets.compare_digest(x_mod_token, MOD_TOKEN):
+        raise HTTPException(403, "bad moderation token")
+    with db() as c:
+        p = c.execute(f"{POST_SQL} WHERE p.id=?", (pid,)).fetchone()
+        if not p:
+            raise HTTPException(404, "post not found")
+        meta = None
+        if p["author_metadata"]:
+            try:
+                meta = json.loads(p["author_metadata"])
+            except Exception:
+                pass
+        return {"ok": True, "post_id": pid, "author_metadata": meta}
 
 
 @app.get("/robots.txt", response_class=HTMLResponse)

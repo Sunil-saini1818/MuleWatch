@@ -72,7 +72,7 @@ One bot does both jobs.
 * Works from the laptop (long polling), no public URL needed. Only one copy of MuleWatch can run per bot token.
 
 ### Optional: AI analyst
-Set `ANTHROPIC_API_KEY` in `.env` to add a Claude second opinion (text + image) to manual checks on the "Check a post" page. Everything works offline without it.
+Set `GEMINI_API_KEY` in `.env` to add a Google Gemini (free tier) second opinion (text + image) to manual checks on the "Check a post" page. Anthropic (`ANTHROPIC_API_KEY`) is also supported as a fallback. Everything works offline without it.
 
 ---
 
