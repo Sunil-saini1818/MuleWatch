@@ -49,7 +49,13 @@ fi
 
 if [ ! -d .venv ]; then
   echo "==> Creating virtualenv"
-  "$PY" -m venv .venv || { echo "!! venv failed. Run: $INSTALL_HINT && rm -rf .venv"; exit 1; }
+  if ! "$PY" -m venv .venv; then
+    # some Homebrew/Debian Pythons ship a broken ensurepip: build the venv without pip, then bootstrap pip
+    echo "==> Retrying without ensurepip"
+    rm -rf .venv
+    "$PY" -m venv --without-pip .venv && curl -fsSL https://bootstrap.pypa.io/get-pip.py | .venv/bin/python - -q \
+      || { rm -rf .venv; echo "!! Could not create the Python environment. Try: $INSTALL_HINT (or brew reinstall python@3.12), then run ./run.sh again"; exit 1; }
+  fi
 fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
