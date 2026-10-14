@@ -5,6 +5,8 @@ const api = async () => (await chrome.storage.sync.get({ api: DEFAULT_API })).ap
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({ id: "mw-text", title: "Check selected text with MuleWatch", contexts: ["selection"] });
   chrome.contextMenus.create({ id: "mw-image", title: "Check this image with MuleWatch", contexts: ["image"] });
+  chrome.contextMenus.create({ id: "mw-link", title: "Check this link with MuleWatch", contexts: ["link"] });
+  chrome.contextMenus.create({ id: "mw-page", title: "Check this page with MuleWatch", contexts: ["page"] });
 });
 
 async function analyze({ text = "", imageUrl = "", pageUrl = "", title = "" }) {
@@ -24,6 +26,31 @@ async function analyze({ text = "", imageUrl = "", pageUrl = "", title = "" }) {
   const r = await fetch(base + "/api/analyze", { method: "POST", body: form });
   if (!r.ok) throw new Error(`MuleWatch returned ${r.status}`);
   return r.json();
+}
+
+// Server fetches the link itself (public pages)
+async function analyzeLink(url) {
+  const r = await fetch((await api()) + "/api/analyze/url", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, save: true }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || `MuleWatch returned ${r.status}`);
+  return d;
+}
+
+// Read the page as the investigator sees it (works on pages that need a login)
+async function pageText(tabId) {
+  const [{ result } = {}] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      const sel = String(getSelection());
+      if (sel.trim().length > 20) return sel;
+      const meta = (n) => document.querySelector(`meta[property="${n}"],meta[name="${n}"]`)?.content || "";
+      const main = document.querySelector("article, [role=article], main") || document.body;
+      return [meta("og:title") || document.title, meta("og:description"), main.innerText].filter(Boolean).join("\n").slice(0, 5000);
+    },
+  });
+  return result || "";
 }
 
 async function showResult(tabId, res) {
@@ -60,15 +87,22 @@ chrome.notifications.onClicked.addListener(async (id) => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
-    const res = await analyze({
-      text: info.menuItemId === "mw-text" ? info.selectionText : "",
-      imageUrl: info.menuItemId === "mw-image" ? info.srcUrl : "",
-      pageUrl: info.pageUrl || tab?.url || "", title: tab?.title || "",
-    });
+    let res;
+    if (info.menuItemId === "mw-link") {
+      res = await analyzeLink(info.linkUrl);
+    } else if (info.menuItemId === "mw-page") {
+      res = await analyze({ text: await pageText(tab.id), pageUrl: info.pageUrl || tab.url, title: tab.title || "" });
+    } else {
+      res = await analyze({
+        text: info.menuItemId === "mw-text" ? info.selectionText : "",
+        imageUrl: info.menuItemId === "mw-image" ? info.srcUrl : "",
+        pageUrl: info.pageUrl || tab?.url || "", title: tab?.title || "",
+      });
+    }
     showResult(tab?.id, res);
   } catch (e) {
-    chrome.notifications.create({ type: "basic", iconUrl: "icon128.png", title: "MuleWatch unreachable",
-      message: `${e.message}. Is the command center running at ${await api()}?` });
+    chrome.notifications.create({ type: "basic", iconUrl: "icon128.png", title: "MuleWatch couldn't check this",
+      message: `${e.message}${e.message.includes("fetch") ? ` Is the command center running at ${await api()}?` : ""}` });
   }
 });
 

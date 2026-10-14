@@ -14,7 +14,7 @@ import re
 import threading
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin
 
 import requests
@@ -60,10 +60,12 @@ def _download_image(url: str, name: str) -> str:
 
 
 def _parse_dt(s: str) -> datetime | None:
+    """ISO time -> naive UTC (the DB stores UTC)."""
     try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00")).replace(tzinfo=None)
-    except (ValueError, AttributeError):
+        d = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except (ValueError, AttributeError, TypeError):
         return None
+    return d.astimezone(timezone.utc).replace(tzinfo=None) if d.tzinfo else d
 
 
 # ----------------------------------------------------------------------------- forum
@@ -147,7 +149,31 @@ def crawl_telegram(session, src: Source) -> int:
     return new
 
 
-CRAWLERS = {"forum": crawl_forum, "telegram": crawl_telegram}
+# ----------------------------------------------------------------------------- single page
+
+PAGE_INTERVAL = float(os.getenv("PAGE_INTERVAL", "60"))
+
+
+def crawl_page(session, src: Source) -> int:
+    """A single URL (an ad, a profile, a listing). Re-fetched every PAGE_INTERVAL seconds; a new case is
+    created whenever its content changes."""
+    from .fetcher import fetch_url
+    f = fetch_url(src.url)
+    if not f["text"] and not f["image_paths"]:
+        raise RuntimeError(f["note"] or "no readable content")
+    fp = hashlib.sha1((f["text"] + "|" + "|".join(f["image_paths"])).encode()).hexdigest()[:16]
+    if fp == src.cursor:
+        return 0
+    imgs = f["image_paths"]
+    p = ingest(session, text=f["text"], platform=f["platform"], author=f["author"], url=f["final_url"],
+               image_path=imgs[0] if imgs else "", extra_images=imgs[1:], posted_at=_parse_dt(f["posted_at"]),
+               source="page", recompute=False)
+    p.remote_id = f"{src.url}#{fp}"
+    src.cursor = fp
+    return 1
+
+
+CRAWLERS = {"forum": crawl_forum, "telegram": crawl_telegram, "page": crawl_page}
 
 
 def crawl_once() -> int:
@@ -155,7 +181,10 @@ def crawl_once() -> int:
     total, backfill = 0, False
     with SessionLocal() as s:
         for src in s.query(Source).filter_by(enabled=True).all():
-            if src.items_seen == 0:
+            if src.kind == "page" and src.last_crawl and \
+                    datetime.utcnow() - src.last_crawl < timedelta(seconds=PAGE_INTERVAL):
+                continue            # single pages are polled gently, not every few seconds
+            if src.items_seen == 0 and src.kind != "page":
                 backfill = True     # first crawl of a source: don't spam Telegram with old posts
             try:
                 n = CRAWLERS[src.kind](s, src)

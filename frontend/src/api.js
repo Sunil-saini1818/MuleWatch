@@ -19,6 +19,7 @@ export const api = {
   feedback: (id, label) => req(`/api/posts/${id}/feedback`, json("POST", { label })),
   takedown: (id) => req(`/api/posts/${id}/takedown`, { method: "POST" }),
   analyze: (form) => req("/api/analyze", { method: "POST", body: form }),
+  analyzeUrl: (url, save) => req("/api/analyze/url", json("POST", { url, save })),
   graph: (params = {}) => req("/api/graph?" + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== "" && v != null))),
   alerts: () => req("/api/alerts"),
   alertsSeen: () => req("/api/alerts/seen", { method: "POST" }),

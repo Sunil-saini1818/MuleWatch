@@ -42,12 +42,16 @@ def _apply_analysis(post: Post, a: dict):
 def ingest(session, *, text: str = "", platform: str = "unknown", author: str = "", url: str = "",
            image_path: str = "", posted_at: datetime | None = None, source: str = "manual",
            ocr_hint: str = "", use_llm: bool = False, train_label: int | None = None,
-           recompute: bool = True) -> Post:
+           recompute: bool = True, extra_images: list[str] | None = None) -> Post:
     ocr_text, ph = "", ""
     if image_path:
         full = str(MEDIA_DIR / image_path)
         ocr_text = ocr_image(full) or ocr_hint
         ph = phash(full)
+    for extra in extra_images or []:           # more images from the same post (e.g. a fetched page)
+        more = ocr_image(str(MEDIA_DIR / extra))
+        if more:
+            ocr_text = (ocr_text + "\n---\n" + more).strip()
 
     llm_result = llm.assess(text + ("\n[OCR] " + ocr_text if ocr_text else ""),
                             str(MEDIA_DIR / image_path) if image_path else None) if use_llm and llm.enabled() else None

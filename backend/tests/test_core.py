@@ -69,3 +69,34 @@ def test_rings():
     c = compute(posts)
     assert c[1]["cluster"] == c[2]["cluster"] and c[4]["cluster"] == c[5]["cluster"]
     assert c[3]["cluster"] is None or c[3]["cluster"] not in (c[1]["cluster"], c[4]["cluster"])
+
+
+def test_fetcher_page_parsing_and_ssrf_guard(monkeypatch):
+    import pytest
+
+    from app.fetcher import FetchError, _check_host, _from_page, _Page, platform_for
+    html = """<html><head><title>Ad</title><meta property="og:title" content="Current account full kit">
+    <meta property="og:description" content="ATM + passbook, KYC done. Call 98290 41736">
+    <meta property="og:image" content="/poster.png"><script>var x=1</script></head>
+    <body><nav>Menu</nav><article><p>Telegram t.me/kitwala_jpr</p></article><footer>c</footer></body></html>"""
+    page = _Page()
+    page.feed(html)
+    info = _from_page(page, "https://example.com/ad/1")
+    assert info["title"] == "Current account full kit"
+    assert "98290 41736" in info["text"] and "t.me/kitwala_jpr" in info["text"]
+    assert "var x" not in info["text"] and "Menu" not in info["text"]
+    assert info["images"][0] == "/poster.png"
+
+    ld = """<script type="application/ld+json">{"@type":"SocialMediaPosting","headline":"Earn 30k",
+    "articleBody":"Apna khata kiraye pe do","author":{"name":"seller1"},"image":"/a.png"}</script>"""
+    page = _Page()
+    page.feed("<html><head>" + ld + "</head><body>Loading</body></html>")
+    info = _from_page(page, "https://example.com/p/2")
+    assert info["text"] == "Apna khata kiraye pe do" and info["author"] == "seller1"
+
+    assert platform_for("https://m.facebook.com/groups/1") == "Facebook"
+    monkeypatch.delenv("ALLOW_PRIVATE_URLS", raising=False)
+    monkeypatch.setenv("FORUM_URL", "http://103.155.85.18:8100")
+    for bad in ("http://127.0.0.1:8000/api/stats", "http://localhost/", "http://192.168.1.10/", "file:///etc/passwd"):
+        with pytest.raises(FetchError):
+            _check_host(bad)

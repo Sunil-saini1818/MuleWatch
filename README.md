@@ -17,7 +17,7 @@ The repo contains two apps:
 
 | Expected outcome | How MuleWatch does it |
 |---|---|
-| Collect publicly available ad data | Live crawler polls monitored sources every 3 s. Forum crawler reads the schema.org `DiscussionForumPosting` JSON-LD real sites publish; Telegram crawler reads public channel previews (`t.me/s/<channel>`). Plus manual check page and a Chrome extension. |
+| Collect publicly available ad data | Live crawler polls monitored sources every 3 s. Forum crawler reads the schema.org `DiscussionForumPosting` JSON-LD real sites publish; Telegram crawler reads public channel previews (`t.me/s/<channel>`). **Any single link** can be checked (post, ad, Telegram post, web page or image) or added as a monitored page that's re-checked every minute. Plus manual check page and a Chrome extension. |
 | Identify keywords, images, phone numbers, URLs, payment details | Multilingual lexicon (English, Hindi, Hinglish) with obfuscation handling (`acc0unt`, `a.t.m`, `r3ady`); extraction of Indian phone numbers in any grouping, UPI IDs, Telegram/WhatsApp links, IFSC, card numbers (masked), crypto wallets, short links, prices; **OCR** (Tesseract, eng+hin) on images. |
 | Classify ads by risk indicators | Hybrid score = noisy-OR of rule engine, character n-gram text classifier, image cues (and optional Claude second opinion) → Low / Medium / High / Critical, with categories: Mule Account Sale, Account-Holder Recruitment, Card Sale, KYC Fraud. |
 | Detect repeated / coordinated ads | MinHash-LSH near-duplicate text, perceptual-hash reposted images (catches cropped/tinted copies), and shared identifiers → connected "seller rings" with a ring boost. Interactive network graph. |
@@ -137,8 +137,20 @@ Backup lines for questions: the Hindi post (`घर बैठे कमाई �
 | `extension/` | Chrome extension (load unpacked) |
 | `deploy/` | Server setup script |
 
+## Checking a single link
+**Check a post → Link**: paste any public link — a forum post, a Telegram post (`t.me/channel/123`), an OLX / Facebook / Instagram / X page, any web page, or a direct image link. MuleWatch reads schema.org data, link-preview (Open Graph) data and the page text, downloads up to 3 images and reads them with OCR, then scores it like any other post. Turn on *Save as a case* to keep it (the same link isn't saved twice). Pages behind a login return little; use the Chrome extension's *Check this page* for those, since it reads the page as you see it.
+
+To keep watching one page (an ad, a profile or a listing), add it in **Monitored sources** as *Single web page*. It's re-checked every minute (`PAGE_INTERVAL`) and a new case is created whenever its content changes. Links to local or private network addresses are refused, except the demo forum.
+
+API: `POST /api/analyze/url {"url": "...", "save": true}`
+
 ## Chrome extension
-`chrome://extensions` → enable Developer mode → **Load unpacked** → select `extension/`. Right-click any text or image on any site → *Check with MuleWatch*; the verdict appears as a notification and a badge on the page, and the case is saved in the command center.
+`chrome://extensions` → enable Developer mode → **Load unpacked** → select `extension/`. Right-click on any site:
+* selected text or an image → *Check … with MuleWatch*
+* a link → *Check this link with MuleWatch* (the command center fetches it)
+* the page itself → *Check this page with MuleWatch* (reads the page as you see it, so it works on pages that need a login)
+
+The verdict appears as a notification and a badge on the page, and the case is saved in the command center.
 
 ## Responsible use
 MuleWatch is decision support for investigators. Scores and links are leads, not proof; every case needs human verification before action. Only publicly available content is collected.

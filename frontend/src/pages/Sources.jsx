@@ -34,7 +34,7 @@ export default function Sources() {
           <thead><tr><th>Source</th><th>Address</th><th>Status</th><th>Last crawl</th><th>Posts collected</th><th>Active</th></tr></thead>
           <tbody>{data?.sources.map((s) => (
             <tr key={s.id}>
-              <td>{s.name}<div className="muted small">{s.kind === "forum" ? "Public forum" : "Telegram public channel"}</div></td>
+              <td>{s.name}<div className="muted small">{{ forum: "Public forum", telegram: "Telegram public channel", page: "Single web page, new case when it changes" }[s.kind]}</div></td>
               <td><code>{s.url}</code></td>
               <td className={s.last_status?.startsWith("error") ? "err" : "ok-text"}>{s.last_status || "waiting"}</td>
               <td>{timeAgo(s.last_crawl)}</td>
@@ -47,8 +47,9 @@ export default function Sources() {
           <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Source type">
             <option value="forum">Forum (Charcha-compatible)</option>
             <option value="telegram">Telegram public channel</option>
+            <option value="page">Single web page (checked every minute)</option>
           </select>
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={kind === "forum" ? "http://103.155.85.18:8100" : "t.me/channelname"} required />
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={{ forum: "http://103.155.85.18:8100", telegram: "t.me/channelname", page: "https://… link to an ad, profile or listing" }[kind]} required />
           <button className="btn"><Icon name="plus" /> Add source</button>
           <button type="button" className="btn" onClick={async () => { const r = await api.crawl(); setMsg(`Crawled now: ${r.new} new post(s).`); load(); }}><Icon name="refresh" /> Crawl now</button>
         </form>

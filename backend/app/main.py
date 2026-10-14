@@ -168,15 +168,18 @@ async def analyze_endpoint(text: str = Form(""), platform: str = Form("Manual su
         (MEDIA_DIR / image_path).write_bytes(data)
     if not text.strip() and not image_path:
         raise HTTPException(400, "Provide text, a URL or an image")
+    return _score(save, text=text, platform=platform, author=author, url=url, image_path=image_path, source=source)
+
+
+def _score(save: bool, **kw) -> dict:
+    """Score content; keep it as a case only when save is true (previews raise no alerts)."""
     with SessionLocal() as s:
         if save:
-            p = ingest(s, text=text, platform=platform, author=author, url=url, image_path=image_path,
-                       source=source, use_llm=True)
+            p = ingest(s, use_llm=True, **kw)
             s.commit()
             return detail(s, p)
-        # preview: score it (including ring links) without raising alerts or keeping the case
-        p = ingest(s, text=text, platform=platform, author=author, url=url, image_path=image_path,
-                   source="preview", use_llm=True, recompute=False)
+        kw["source"] = "preview"
+        p = ingest(s, use_llm=True, recompute=False, **kw)
         recompute_all(s, alert=False)
         out = detail(s, p) | {"id": None}
         s.query(Alert).filter(Alert.post_id == p.id).delete()
@@ -184,6 +187,31 @@ async def analyze_endpoint(text: str = Form(""), platform: str = Form("Manual su
         s.commit()
         recompute_all(s, alert=False)
         return out
+
+
+@app.post("/api/analyze/url")
+def analyze_url(url: str = Body(...), save: bool = Body(True)):
+    """Fetch one public link (post, ad, Telegram post, web page or image) and score it."""
+    from .fetcher import FetchError, fetch_url
+    from .crawler import _parse_dt
+    url = url.strip()
+    if save:
+        with SessionLocal() as s:
+            existing = s.query(Post).filter(Post.url == url).order_by(Post.id.desc()).first()
+            if existing:
+                return detail(s, existing) | {"fetch": {"already_tracked": True, "how": "Already a case",
+                                                        "final_url": url, "note": ""}}
+    try:
+        f = fetch_url(url)
+    except FetchError as e:
+        raise HTTPException(422, str(e))
+    if not f["text"] and not f["image_paths"]:
+        raise HTTPException(422, f["note"] or "Nothing readable was found at that link.")
+    imgs = f["image_paths"]
+    out = _score(save, text=f["text"], platform=f["platform"], author=f["author"], url=f["final_url"],
+                 image_path=imgs[0] if imgs else "", extra_images=imgs[1:], posted_at=_parse_dt(f["posted_at"]),
+                 source="url")
+    return out | {"fetch": {k: f[k] for k in ("final_url", "how", "note", "title")} | {"images": len(imgs)}}
 
 
 # ----------------------------------------------------------------------------- stats & trends

@@ -286,3 +286,12 @@ mark { color: inherit; border-radius: 3px; padding: 0 1px; }
   .sound span { display: none; }
   .case-actions { flex-direction: row; flex-wrap: wrap; }
 }
+
+/* ---------- link checks */
+.mode-seg { margin-bottom: 12px; }
+.seg-btn.on-indigo { background: var(--indigo); color: #fff; }
+.url-in { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; font-size: 15px; }
+.hint-line { font-size: 13px; color: var(--muted); margin: 8px 0 12px; max-width: 80ch; }
+.fetch-info { background: var(--indigo-soft); color: #1f2a7a; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; overflow-wrap: anywhere; }
+.fetch-info p { margin: 6px 0 0; }
+.fetch-info.warn { background: var(--high-soft); color: #7a3a00; }
