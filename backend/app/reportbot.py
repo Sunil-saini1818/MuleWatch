@@ -115,11 +115,22 @@ ADVICE = {
             "इसे धोखाधड़ी मानें — बैंक या कार्ड की जानकारी साझा न करें।",
     "Medium": "Be careful: some warning signs are present. Investigators will take a look.\n"
               "सावधान रहें — कुछ संदिग्ध संकेत हैं।",
-    "Low": "No strong signs of bank-account or card selling. If something still feels wrong, trust that feeling.\n"
-           "कोई मज़बूत संकेत नहीं मिला, फिर भी सावधान रहें।",
+    "Low": "I didn't find signs of bank-account or card selling in this message. Investigators can still see your "
+           "report. If someone asked for your OTP, PIN or card details, or you lost money, call <b>1930</b> now.\n"
+           "खाता/कार्ड बेचने के संकेत नहीं मिले। अगर किसी ने OTP, PIN या कार्ड नंबर माँगा या पैसे कटे हैं, तो तुरंत 1930 पर कॉल करें।",
 }
 HEAD = {"Critical": "🚨 <b>Very likely a scam</b>", "High": "⚠️ <b>Likely a scam</b>",
-        "Medium": "🟡 <b>Suspicious</b>", "Low": "✅ <b>Looks OK</b>"}
+        "Medium": "🟡 <b>Suspicious</b>", "Low": "ℹ️ <b>No signs of account or card selling</b>"}
+
+VICTIM_ADVICE = (
+    "<b>What to do now</b>\n"
+    "• Never share your card number, PIN, CVV or OTP. Banks and officials never ask for them.\n"
+    "• If you shared anything or money was taken: call your bank to block the card/account, then call "
+    "<b>1930</b> right away (the first hour matters) and file at cybercrime.gov.in.\n"
+    "• Keep the caller's number, call log and screenshots as evidence.\n\n"
+    "कार्ड नंबर, PIN, CVV या OTP कभी किसी को न बताएं। अगर बता दिया है या पैसे कटे हैं, तो तुरंत बैंक से कार्ड ब्लॉक "
+    "करवाएं और 1930 पर कॉल करें।"
+)
 
 
 def case_id(pid: int) -> str:
@@ -128,7 +139,20 @@ def case_id(pid: int) -> str:
 
 def verdict_text(p: Post, reports_count: int, already: bool) -> str:
     e = lambda s: html.escape(str(s))
-    lines = [f"{HEAD.get(p.risk_level, '')} — {e(p.category)}  ({p.risk_score:.0f}/100)", f"Case <b>{case_id(p.id)}</b>"]
+    if p.category == "Reported Fraud Attempt":
+        lines = ["🛡️ <b>Thank you. This is a fraud attempt.</b>", f"Case <b>{case_id(p.id)}</b> has been sent to investigators."]
+        cues = next((r.split(": ", 1)[1] for r in (p.reasons or []) if r.startswith("Fraud attempt reported")), "")
+        if cues:
+            lines.append("\n<b>What you described:</b> " + e(cues))
+        ents = p.entities or {}
+        nums = [*ents.get("phone", [])[:2], *ents.get("phone_like", [])[:1], *ents.get("upi", [])[:1]]
+        if nums:
+            lines.append("<b>Numbers noted:</b> " + ", ".join(f"<code>{e(n)}</code>" for n in nums))
+        lines.append("\n" + VICTIM_ADVICE)
+        return "\n".join(lines)
+    head = HEAD.get(p.risk_level, "") if p.risk_level == "Low" else \
+        f"{HEAD.get(p.risk_level, '')} — {e(p.category)}  ({p.risk_score:.0f}/100)"
+    lines = [head, f"Case <b>{case_id(p.id)}</b>"]
     if already:
         lines.append(f"Already reported by {reports_count} {'person' if reports_count == 1 else 'people'} — "
                      "thank you, your report was added to the same case.")
@@ -145,7 +169,8 @@ def verdict_text(p: Post, reports_count: int, already: bool) -> str:
         lines.append(f"🔗 Linked to {p.cluster_size - 1} other post{'s' if p.cluster_size > 2 else ''} "
                      "from the same seller network.")
     lines.append("\n" + ADVICE.get(p.risk_level, ""))
-    lines.append("\nLost money? Call <b>1930</b> · cybercrime.gov.in")
+    if p.risk_level != "Low":
+        lines.append("\nLost money? Call <b>1930</b> · cybercrime.gov.in")
     return "\n".join(lines)
 
 

@@ -4,7 +4,7 @@ import { api, LEVELS } from "../api";
 import { Empty, PostRow } from "../components/ui";
 import { useLive } from "../live";
 
-const CATEGORIES = ["Mule Account Sale", "Account-Holder Recruitment", "Card Sale", "KYC Fraud", "Easy-Money Lure", "Suspicious Financial Ad", "Benign"];
+const CATEGORIES = ["Mule Account Sale", "Account-Holder Recruitment", "Card Sale", "KYC Fraud", "Easy-Money Lure", "Reported Fraud Attempt", "Suspicious Financial Ad", "Benign"];
 
 export default function Cases() {
   const [sp, setSp] = useSearchParams();

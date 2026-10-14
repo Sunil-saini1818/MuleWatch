@@ -56,7 +56,7 @@ def ingest(session, *, text: str = "", platform: str = "unknown", author: str = 
     llm_result = llm.assess(text + ("\n[OCR] " + ocr_text if ocr_text else ""),
                             str(MEDIA_DIR / image_path) if image_path else None) if use_llm and llm.enabled() else None
     a = analyze(text, ocr_text, keyword_stats(session),
-                llm_result if llm_result and "score" in llm_result else None)
+                llm_result if llm_result and "score" in llm_result else None, citizen=source == "citizen")
 
     post = Post(text=text, platform=platform, author=author, url=url, image_path=image_path,
                 ocr_text=ocr_text, image_phash=ph, source=source, train_label=train_label,
@@ -128,16 +128,19 @@ def recompute_all(session, alert: bool = True, push: bool = True):
     session.commit()
 
 
-def rescore_all(session):
-    """After feedback/retraining: re-run text analysis for every post (OCR & LLM results reused)."""
+def rescore_all(session, alert: bool = False):
+    """Re-run text analysis for every post (OCR & LLM results reused): after feedback/retraining, and at
+    startup so cases captured by an older version are scored with the current rules."""
     stats = keyword_stats(session)
     for p in session.query(Post).all():
         llm_res = p.llm if p.llm and "score" in p.llm else None
-        a = analyze(p.text or "", p.ocr_text or "", stats, llm_res)
+        a = analyze(p.text or "", p.ocr_text or "", stats, llm_res, citizen=p.source == "citizen")
+        extra = [r for r in (p.reasons or []) if r.startswith(("Posted as a comment", "Citizen report:"))]
         _apply_analysis(p, a)
+        p.reasons = p.reasons + [r for r in extra if r not in p.reasons]
         p.scores = dict(p.scores, base=a["base_score"], final_done=True)
     session.flush()
-    recompute_all(session, alert=False)
+    recompute_all(session, alert=alert)
 
 
 def base_training_set() -> list[tuple[str, int]]:

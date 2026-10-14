@@ -71,7 +71,7 @@ def test_reporting_flow():
 
     # harmless message
     reportbot.handle_update(upd(505, "Is this the right number for SBI customer care? Need help with my passbook"), tg)
-    assert "Looks OK" in tg.sent[-1][1]
+    assert "No signs of account or card selling" in tg.sent[-1][1]
 
     reportbot.handle_update(upd(101, "/status"), tg)
     assert "Your recent reports" in tg.sent[-1][1] and "under review" in tg.sent[-1][1]
@@ -98,3 +98,29 @@ def test_link_alerts_with_code():
     assert "Linked" in tg.sent[-1][1] and alert_chat_id() == "4242"
     reportbot.handle_update(upd(4242, "/alerts off"), tg)
     assert "turned off" in tg.sent[-1][1] and alert_chat_id() == ""
+
+
+def test_victim_report_is_a_fraud_attempt():
+    tg = FakeTG()
+    reportbot.handle_update(upd(7070, "I want to report fraud. This random guy called me and was asking for my ATM "
+                                      "car d number and PIN number. He was telling my card will be blocked"), tg)
+    reply = tg.sent[-1][1]
+    assert "This is a fraud attempt" in reply and "1930" in reply and "Looks OK" not in reply
+    with SessionLocal() as s:
+        p = s.query(Post).order_by(Post.id.desc()).first()
+        assert p.category == "Reported Fraud Attempt" and p.risk_level in ("High", "Critical")
+
+
+def test_startup_rescore_upgrades_old_citizen_reports():
+    from app.db import Alert
+    from app.pipeline import ingest, rescore_all
+    text = "Someone called from SBI KYC department and asked me to share OTP, said account will be blocked"
+    with SessionLocal() as s:
+        p = ingest(s, text=text, source="manual")      # scored the old way (no victim rules)
+        assert p.risk_level == "Low"
+        p.source = "citizen"
+        s.commit()
+        rescore_all(s, alert=True)
+        p = s.get(Post, p.id)
+        assert p.category == "Reported Fraud Attempt" and p.risk_level in ("High", "Critical")
+        assert s.query(Alert).filter_by(post_id=p.id).count() == 1

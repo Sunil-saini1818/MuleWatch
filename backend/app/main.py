@@ -34,6 +34,9 @@ def startup():
     if not model().trained:
         with SessionLocal() as s:
             retrain(training_samples(s))
+    with SessionLocal() as s:          # bring cases captured by an older version up to the current rules
+        from .pipeline import rescore_all
+        rescore_all(s, alert=True)
     crawler.ensure_default_sources()
     crawler.start()
     reportbot.start()

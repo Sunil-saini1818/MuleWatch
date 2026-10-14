@@ -91,7 +91,36 @@ def rule_engine(hits: list[dict], entities: dict, stats: dict, text_for_rules: s
     return max(0.0, min(1.0, points / 100)), parts, reasons, risky_language
 
 
+# Citizen reports are often not ads at all but a victim describing a scam attempt ("he called and asked
+# for my ATM card number and PIN"). These cues only apply to citizen reports.
+_SECRET = r"(?:o\s?t\s?p|p\s?i\s?n|cvv|card\s*(?:no|number|details)|car\s?d\s*(?:no|number)|atm|password|upi\s*pin|" \
+          r"account\s*(?:no|number|details)|net\s*banking|aadhaa?r|pan\s*card|ओटीपी|पिन|कार्ड)"
+FRAUD_ATTEMPT = [
+    ("Someone asked for card, PIN, OTP or account details",
+     re.compile(r"\b(?:ask\w*|demand\w*|want\w*|wanted|maang\w*|requested|share|bata\w*|tell me)\b.{0,50}?" + _SECRET, re.I | re.S)),
+    ("Someone asked for card, PIN, OTP or account details",
+     re.compile(_SECRET + r".{0,40}?\b(?:ask\w*|maang\w*|share karo|batao|bata do|demand\w*)", re.I | re.S)),
+    ("Caller or message pretending to be a bank, KYC team or official",
+     re.compile(r"\b(?:call\w*|phone\w*|messag\w*|sms|whatsapp\w*|link)\b.{0,60}?\b(?:bank|kyc|rbi|sbi|hdfc|icici|axis|"
+                r"customer care|executive|officer|police|cbi|customs|courier)\b", re.I | re.S)),
+    ("Threat that the account or card will be blocked",
+     re.compile(r"\b(?:account|card|sim|kyc)\b.{0,30}?\b(?:block\w*|suspend\w*|expire\w*|band ho|deactivat\w*)", re.I | re.S)),
+    ("Asked to install a screen-sharing or remote app",
+     re.compile(r"\b(?:anydesk|teamviewer|quick\s?support|screen\s?shar\w*|remote app)\b", re.I)),
+    ("Victim reports losing money or being cheated",
+     re.compile(r"\b(?:lost|deducted|debited|cheated|scammed|duped|thug\w*|money (?:was )?taken)\b|ठग|धोखा|पैसे कट", re.I)),
+    ("Reporter says it is fraud",
+     re.compile(r"\b(?:report (?:a )?fraud|fraud call|fake call|scam call|fraudster|scammer)\b", re.I)),
+]
+
+
+def fraud_attempt_cues(text: str) -> list[str]:
+    return list(dict.fromkeys(label for label, rx in FRAUD_ATTEMPT if rx.search(text or "")))
+
+
 def categorize(by_group: set, entities: dict, score: float) -> str:
+    if "fraud_attempt" in by_group and score >= 30:
+        return "Reported Fraud Attempt"
     if score < 30:
         return "Benign"
     if "money_lure" in by_group and not by_group & {"mule_kit", "card_sale", "payout_lure", "financial_object"}:
@@ -107,7 +136,8 @@ def categorize(by_group: set, entities: dict, score: float) -> str:
     return "Suspicious Financial Ad"
 
 
-def analyze(text: str, ocr_text: str = "", stats: dict | None = None, llm: dict | None = None) -> dict:
+def analyze(text: str, ocr_text: str = "", stats: dict | None = None, llm: dict | None = None,
+            citizen: bool = False) -> dict:
     stats = stats or {}
     text_hits = find_keywords(text)
     ocr_hits = [dict(h, source="image") for h in find_keywords(ocr_text)] if ocr_text else []
@@ -153,6 +183,16 @@ def analyze(text: str, ocr_text: str = "", stats: dict | None = None, llm: dict 
 
     noisy_or = 1 - (1 - r) * (1 - 0.75 * m) * (1 - 0.6 * i) * (1 - 0.8 * l_score)
     base = round(noisy_or * 100, 1)
+
+    if citizen:
+        cues = fraud_attempt_cues(text + "\n" + ocr_text)
+        asked = ("Someone asked for card, PIN, OTP or account details" in cues
+                 or "Victim reports losing money or being cheated" in cues)
+        if asked or len(cues) >= 2:
+            groups.add("fraud_attempt")
+            # a victim was targeted: always needs an investigator, whatever the ad-scoring says
+            base = max(base, 85.0 if asked and len(cues) >= 2 else 70.0)
+            reasons.insert(0, "Fraud attempt reported by a citizen: " + "; ".join(cues))
 
     return {
         "matches": [{k: h[k] for k in ("term", "group", "start", "end", "text", "obfuscated")} | {"source": "text"} for h in text_hits]
