@@ -458,7 +458,13 @@ def bot_status():
         cases = s.query(func.count(func.distinct(Report.post_id))).scalar() or 0
         last = s.query(func.max(Report.created_at)).scalar()
         recent = s.query(Report, Post).join(Post, Post.id == Report.post_id).order_by(Report.id.desc()).limit(8).all()
+        from .alerts import alert_chat_id
+        from .db import get_setting
+        from .config import TELEGRAM_CHAT_ID
         return reportbot.status() | {
+            "alert_code": reportbot.ALERT_CODE,
+            "alerts_linked": bool(alert_chat_id()),
+            "alerts_to": "TELEGRAM_CHAT_ID in .env" if TELEGRAM_CHAT_ID else get_setting("alert_chat_name"),
             "reports": total, "reporters": reporters, "cases": cases,
             "last_report_at": last.isoformat() if last else None,
             "link": f"https://t.me/{reportbot.status()['username']}" if reportbot.status()["username"] else "",
@@ -466,6 +472,14 @@ def bot_status():
                         "excerpt": (p.text or p.ocr_text or "")[:120], "origin": r.origin,
                         "at": r.created_at.isoformat()} for r, p in recent],
         }
+
+
+@app.delete("/api/bot/alerts")
+def unlink_alerts():
+    from .db import set_setting
+    set_setting("alert_chat_id", None)
+    set_setting("alert_chat_name", None)
+    return {"ok": True}
 
 
 @app.post("/api/crawl")

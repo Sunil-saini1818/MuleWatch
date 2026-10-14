@@ -5,15 +5,15 @@ import { api, caseId, timeAgo } from "../api";
 import { RiskBadge } from "./ui";
 import { useLive } from "../live";
 
-export function useBot() {
+export function useBot(extra = 0) {
   const { version } = useLive();
   const [bot, setBot] = useState(null);
   useEffect(() => {
     const load = () => api.bot().then(setBot).catch(() => setBot(null));
     load();
-    const t = setInterval(load, 15000);
+    const t = setInterval(load, 5000);
     return () => clearInterval(t);
-  }, [version]);
+  }, [version, extra]);
   return bot;
 }
 
@@ -50,7 +50,8 @@ export function BotCard() {
 
 /** Full panel for the Monitored sources page. */
 export function BotPanel() {
-  const bot = useBot();
+  const [tick, setTick] = useState(0);
+  const bot = useBot(tick);
   if (!bot) return null;
   if (!bot.enabled) {
     return (
@@ -77,6 +78,13 @@ export function BotPanel() {
             <dt>People reporting</dt><dd>{bot.reporters}</dd>
             <dt>Cases opened</dt><dd>{bot.cases} <Link to="/cases?source=citizen" className="small">view</Link></dd>
             <dt>Last report</dt><dd>{bot.last_report_at ? timeAgo(bot.last_report_at) : "none yet"}</dd>
+            <dt>Phone alerts</dt>
+            <dd>{bot.alerts_linked
+              ? <>On, sent to <b>{bot.alerts_to || "linked chat"}</b>{" "}
+                  {bot.alerts_to !== "TELEGRAM_CHAT_ID in .env" &&
+                    <button className="linkish" onClick={async () => { await api.unlinkAlerts(); setTick((x) => x + 1); }}>turn off</button>}</>
+              : <>Off. To get Critical alerts on your phone, send <code className="code-big">/alerts {bot.alert_code}</code> to {bot.username ? <a href={bot.link} target="_blank" rel="noreferrer">@{bot.username}</a> : "the bot"}.</>}
+            </dd>
           </dl>
           <p className="muted small">Reporters get a verdict with safety advice in English and Hindi, and a message when investigators confirm, dismiss or take down what they reported. Their identity isn't shown here.</p>
         </div>

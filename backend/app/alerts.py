@@ -4,19 +4,30 @@ import threading
 
 import requests
 
-from .config import ALERT_MIN_LEVEL, LEVEL_RANK, PUBLIC_BASE_URL, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from .config import (ALERT_MIN_LEVEL, LEVEL_RANK, PUBLIC_BASE_URL, REPORT_BOT_TOKEN, TELEGRAM_BOT_TOKEN,
+                     TELEGRAM_CHAT_ID)
 from .db import Alert
 
 
+def alert_token() -> str:
+    return TELEGRAM_BOT_TOKEN or REPORT_BOT_TOKEN
+
+
+def alert_chat_id() -> str:
+    """TELEGRAM_CHAT_ID from .env, or the chat linked by sending /alerts <code> to the bot."""
+    from .db import get_setting
+    return TELEGRAM_CHAT_ID or get_setting("alert_chat_id")
+
+
 def telegram_enabled() -> bool:
-    return bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)
+    return bool(alert_token() and alert_chat_id())
 
 
 def _send_telegram(text: str) -> bool:
     try:
         root = os.getenv("TELEGRAM_API_BASE", "https://api.telegram.org").rstrip("/")
-        r = requests.post(f"{root}/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                          json={"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML",
+        r = requests.post(f"{root}/bot{alert_token()}/sendMessage",
+                          json={"chat_id": alert_chat_id(), "text": text, "parse_mode": "HTML",
                                 "disable_web_page_preview": True}, timeout=10)
         return r.ok
     except requests.RequestException:

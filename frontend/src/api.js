@@ -31,6 +31,7 @@ export const api = {
   toggleSource: (id, enabled) => req(`/api/sources/${id}`, json("PATCH", { enabled })),
   crawl: () => req("/api/crawl", { method: "POST" }),
   bot: () => req("/api/bot"),
+  unlinkAlerts: () => req("/api/bot/alerts", { method: "DELETE" }),
 };
 
 export const LEVELS = ["Critical", "High", "Medium", "Low"];

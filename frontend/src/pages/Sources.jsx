@@ -60,7 +60,7 @@ export default function Sources() {
       <BotPanel />
       <div className="two-col">
         <section className="panel">
-          <div className="panel-head"><h2>Alert log</h2><span className="muted small">{sys?.telegram_alerts ? "Telegram push is on" : "Telegram push off (set TELEGRAM_BOT_TOKEN in .env)"}</span></div>
+          <div className="panel-head"><h2>Alert log</h2><span className="muted small">{sys?.telegram_alerts ? "Telegram push is on" : "Telegram push off (see Phone alerts above)"}</span></div>
           {alerts.length ? alerts.slice(0, 25).map((a) => (
             <Link key={a.id} to={`/case/${a.post_id}`} className="alert-row">
               <RiskBadge level={a.level} />

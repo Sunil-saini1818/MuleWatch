@@ -92,6 +92,32 @@ class KeywordStat(Base):
     false_positive = Column(Integer, default=0)
 
 
+class Setting(Base):
+    """Small key/value store for things set at runtime (e.g. the chat that receives alerts)."""
+    __tablename__ = "settings"
+    key = Column(String(60), primary_key=True)
+    value = Column(String(300), default="")
+
+
+def get_setting(key: str, default: str = "") -> str:
+    with SessionLocal() as s:
+        row = s.get(Setting, key)
+        return row.value if row else default
+
+
+def set_setting(key: str, value: str | None):
+    with SessionLocal() as s:
+        row = s.get(Setting, key)
+        if value is None:
+            if row:
+                s.delete(row)
+        elif row:
+            row.value = value
+        else:
+            s.add(Setting(key=key, value=value))
+        s.commit()
+
+
 class Report(Base):
     """A citizen report received through the Telegram reporting bot. Several reports can point to the
     same case (people forwarding the same ad)."""

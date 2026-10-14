@@ -87,3 +87,14 @@ def test_rate_limit(monkeypatch):
     for i in range(3):
         reportbot.handle_update(upd(999, f"some message number {i} about nothing in particular"), tg)
     assert "a lot of reports" in tg.sent[-1][1]
+
+
+def test_link_alerts_with_code():
+    from app.alerts import alert_chat_id
+    tg = FakeTG()
+    reportbot.handle_update(upd(4242, "/alerts 000000"), tg)
+    assert "followed by the code" in tg.sent[-1][1] and alert_chat_id() == ""
+    reportbot.handle_update(upd(4242, f"/alerts {reportbot.ALERT_CODE}"), tg)
+    assert "Linked" in tg.sent[-1][1] and alert_chat_id() == "4242"
+    reportbot.handle_update(upd(4242, "/alerts off"), tg)
+    assert "turned off" in tg.sent[-1][1] and alert_chat_id() == ""

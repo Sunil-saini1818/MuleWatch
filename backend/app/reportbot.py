@@ -12,6 +12,7 @@ Token: REPORT_BOT_TOKEN (or TELEGRAM_BOT_TOKEN) in .env.
 import hashlib
 import html
 import os
+import secrets
 import re
 import threading
 import time
@@ -26,6 +27,9 @@ from .db import Post, Report, SessionLocal
 
 MAX_FILE = 8 * 1024 * 1024
 URL_RX = re.compile(r"(?:https?://|www\.|t\.me/)\S+", re.I)
+
+# one-time code shown in the command center; whoever sends "/alerts <code>" gets the alerts
+ALERT_CODE = f"{secrets.randbelow(900000) + 100000}"
 
 _status = {"enabled": bool(REPORT_BOT_TOKEN), "running": False, "username": "", "name": "",
            "last_update": None, "last_error": "", "handled": 0}
@@ -213,6 +217,9 @@ def handle_update(update: dict, tg) -> None:
     if text.startswith("/status"):
         tg.send(chat_id, _status_text(chat_id))
         return
+    if text.startswith("/alerts"):
+        tg.send(chat_id, _link_alerts(chat_id, text.split()[1:], msg))
+        return
     if text.startswith("/"):
         tg.send(chat_id, "Send me a suspicious message, link or screenshot. /help explains how.")
         return
@@ -288,6 +295,24 @@ def handle_update(update: dict, tg) -> None:
     tg.send(chat_id, reply, reply_to=mid)
     _status["handled"] += 1
     _status["last_update"] = datetime.utcnow().isoformat()
+
+
+def _link_alerts(chat_id, args, msg) -> str:
+    from .db import get_setting, set_setting
+    if args and args[0].lower() == "off":
+        if get_setting("alert_chat_id") == str(chat_id):
+            set_setting("alert_chat_id", None)
+            set_setting("alert_chat_name", None)
+            return "🔕 Alerts turned off for this chat."
+        return "This chat isn't receiving alerts."
+    if not args or not secrets.compare_digest(args[0], ALERT_CODE):
+        return ("To receive MuleWatch alerts here, send <code>/alerts</code> followed by the code shown on the "
+                "command center (Monitored sources → Phone alerts).")
+    who = (msg.get("from") or {}).get("first_name", "") or "this chat"
+    set_setting("alert_chat_id", str(chat_id))
+    set_setting("alert_chat_name", who[:60])
+    return ("✅ Linked. This chat will now get MuleWatch <b>Critical</b> alerts (and watchlist hits).\n"
+            "Send <code>/alerts off</code> to stop.")
 
 
 def _status_text(chat_id) -> str:

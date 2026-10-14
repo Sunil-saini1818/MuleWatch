@@ -59,7 +59,7 @@ One bot does both jobs.
 1. Telegram → **@BotFather** → `/newbot` → name it (e.g. *MuleWatch Report*) and pick a username ending in `bot` (e.g. `SKITMuleWatchBot`; `MuleWatchBot` itself may be taken). Copy the token.
 2. Optional polish in @BotFather: `/setdescription` → *Forward a suspicious message, link or screenshot about bank accounts or ATM cards for sale and get an instant check.* and `/setuserpic`.
 3. Put the token in `.env` as `TELEGRAM_BOT_TOKEN` and restart `./run.sh`. **Monitored sources** shows *Citizen reporting bot: Online* with a QR code (also on the command center), so judges can scan and try it.
-4. For Critical alerts on your phone: send your bot any message, open `https://api.telegram.org/bot<TOKEN>/getUpdates`, copy `chat.id` into `TELEGRAM_CHAT_ID`, restart.
+4. For Critical alerts on your phone: **Monitored sources → Phone alerts** shows a 6-digit code. Send `/alerts <code>` to your bot from your phone; that chat is linked and starts getting Critical alerts (`/alerts off` stops them). No need to look up a chat ID. (Setting `TELEGRAM_CHAT_ID` in `.env` still works too.)
 
 **What the reporting bot does**
 * Accepts typed text, **forwarded messages** (from channels, groups or people), **links** (it opens them like *Check a post*) and **screenshots** (read with OCR).
