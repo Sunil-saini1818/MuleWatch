@@ -1,6 +1,7 @@
 """Seed the Charcha forum with 50 synthetic posts: ordinary community posts, tricky look-alikes
 (awareness posts, bank questions, someone showing their new card) and mule / card-sale ads —
-some posted by different accounts of the same seller network.
+some posted by different accounts of the same seller network. Three sellers also hide their ads
+in the comments of ordinary posts.
 
     python seed_forum.py            # creates data/charcha.db (wipes the old one)
 
@@ -82,7 +83,8 @@ POSTS = [
      "Lots of 'earn 30k/month by renting your account' posts are going around. Your account gets used to move cyber-fraud "
      "money and YOU become the accused as a money mule.\nNever share your ATM card, passbook or net banking. "
      "Report such ads at cybercrime.gov.in or call 1930.", "", "awareness.png", 64,
-     [("rahul_cse", "Thanks, sharing this in our class group."), ("nisha_t", "Very important. My cousin's account got frozen like this.")]),
+     [("rahul_cse", "Thanks, sharing this in our class group."), ("nisha_t", "Very important. My cousin's account got frozen like this."),
+      ("kitwala_support", "Bhai full kit available hai, current account + ATM + net banking. DM t.me/kitwala_jpr")]),
     ("ankit_sharma", "PaisaTalk", 28, "Lost my SBI ATM card yesterday, how to block it quickly?",
      "Tried customer care but the call keeps disconnecting. Is there an SMS method?", "", "", 11,
      [("kunal_g", "Use YONO or SMS BLOCK XXXX to 567676 from registered number.")]),
@@ -118,7 +120,8 @@ POSTS = [
      "7 AM, tennis ball. Everyone welcome, just bring water.", "", "cricket.png", 19, []),
     ("gate_aspirant", "CampusCorner", 36, "GATE CSE 2027 study group — weekends at central library",
      "Planning to cover OS, DBMS, CN and Algo with weekly mock tests. Comment if interested.", "", "", 27,
-     [("rahul_cse", "Interested!"), ("aditya_k", "Count me in for OS and CN")]),
+     [("rahul_cse", "Interested!"), ("aditya_k", "Count me in for OS and CN"),
+      ("easy_paisa_jpr", "Students! Earn 2000 daily from home, no investment. WhatsApp 98870 01122")]),
     ("foodie_jaipur", "JaipurBazaar", 14, "Best momos near WTP?", "Tried 3 stalls, all average. Recommendations?", "", "", 21,
      [("harsh_v", "Try the one opposite gate 2, fried paneer momos are 🔥")]),
     ("bgmi_squad", "GamingAdda", 19, "Looking for 2 players for BGMI scrims (Ace+)",
@@ -140,7 +143,8 @@ POSTS = [
      "Not financial advice, just curious what everyone is doing.", "", "", 12, []),
     ("sip_guru", "PaisaTalk", 39, "SIP vs FD for a college student with ₹2,000/month?",
      "Want to start investing small. Index fund SIP or recurring deposit?", "", "", 20,
-     [("kunal_g", "Index fund SIP, long term. Keep 3 months expense in FD/RD as emergency.")]),
+     [("kunal_g", "Index fund SIP, long term. Keep 3 months expense in FD/RD as emergency."),
+      ("quick_earn_99", "Want 25k/month without investing? Rent your savings account, sirf gaming ke liye. WhatsApp 70148 25519")]),
     ("os_notes", "CampusCorner", 17, "Operating Systems Unit 3 notes (deadlocks & banker's algorithm)",
      "Handwritten notes, scanned. Hope it helps for the mid-sem.", "https://drive.google.com/example-os-notes", "", 41, []),
     ("bookworm_skit", "JaipurBazaar", 21, "Second-hand engineering books, 3rd sem CSE, half price",

@@ -100,6 +100,7 @@ code { font-family: var(--mono); font-size: .9em; }
 .chip-ring { background: var(--indigo-soft); color: var(--indigo); cursor: pointer; }
 .chip-ok { background: var(--low-soft); color: #22603f; }
 .chip-td { background: var(--crit-soft); color: var(--crit); }
+.chip-cmt { background: #eef0f5; color: var(--ink); border: 1px dashed #b9c1d6; }
 
 .ring { display: block; padding: 10px 12px; border: 1px solid var(--line); border-left: 4px solid var(--indigo); border-radius: 8px; margin-bottom: 8px; color: var(--ink); }
 .ring:hover { text-decoration: none; background: #f8f9fd; }

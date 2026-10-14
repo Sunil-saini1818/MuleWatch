@@ -46,7 +46,7 @@ export default function Dashboard() {
       </div>
 
       <div className="kpis">
-        <Kpi label="posts scanned" value={stats?.total} to="/cases" />
+        <Kpi label="posts and comments scanned" value={stats?.total} to="/cases" />
         <Kpi label="flagged high or critical" value={stats?.flagged} tone="warn" to="/cases?level=Critical,High" />
         <Kpi label="critical" value={stats?.critical} tone="crit" to="/cases?level=Critical" />
         <Kpi label="seller rings found" value={stats?.rings} tone="tone-ring" to="/network" />

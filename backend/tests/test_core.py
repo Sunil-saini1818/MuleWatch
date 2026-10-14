@@ -100,3 +100,11 @@ def test_fetcher_page_parsing_and_ssrf_guard(monkeypatch):
     for bad in ("http://127.0.0.1:8000/api/stats", "http://localhost/", "http://192.168.1.10/", "file:///etc/passwd"):
         with pytest.raises(FetchError):
             _check_host(bad)
+
+
+def test_comment_style_texts():
+    assert analyze("Contact 767824655 to earn money")["base_score"] >= 55        # malformed number still counts
+    assert analyze("Students! Earn 2000 daily from home, no investment. WhatsApp 98870 01122")["base_score"] >= 55
+    for ok in ("Thanks, very helpful post!", "dm kiya bhai", "Interested!",
+               "Part-time food delivery partners needed, weekly payout. Call 9876501234"):
+        assert analyze(ok)["base_score"] < 30, ok

@@ -84,6 +84,8 @@ RX = {
     "ifsc": re.compile(r"\b([A-Z]{4}0[A-Z0-9]{6})\b"),
     "card_number": re.compile(r"(?<!\d)((?:\d{4}[\s\-]?){3}\d{4}|(?:\d{4}[\s\-]?){2}[Xx*]{4}[\s\-]?\d{4}|(?:[Xx*]{4}[\s\-]?){3}\d{4})(?!\d)"),
     "crypto_wallet": re.compile(r"\b(T[1-9A-HJ-NP-Za-km-z]{33}|0x[a-fA-F0-9]{40}|bc1[a-z0-9]{25,59})\b"),
+    # a number offered for contact that isn't a valid Indian mobile (typo or deliberately broken)
+    "phone_like": re.compile(r"(?:contact|call|whatsapp|wa|msg|message|dm|ping|sampark|संपर्क)\D{0,8}?(\+?\d[\d\s-]{6,14}\d)", re.I),
     "price": re.compile(r"(?:₹|rs\.?|inr)\s?(\d[\d,]*(?:\.\d+)?\s?k?)|(\d[\d,]*\s?k?)\s?(?:/-|rs\b|rupees|₹)", re.I),
 }
 
@@ -117,7 +119,7 @@ def _norm_phone(p: str) -> str:
 def extract_entities(text: str) -> dict:
     out: dict[str, list] = {k: [] for k in
                             ("phone", "upi", "telegram", "whatsapp", "url", "email", "ifsc",
-                             "card_number", "crypto_wallet", "price", "handle")}
+                             "card_number", "crypto_wallet", "price", "handle", "phone_like")}
     spans: list[dict] = []
 
     def add(kind, value, m, group=0):
@@ -172,6 +174,10 @@ def extract_entities(text: str) -> dict:
     for m in RX["phone"].finditer(text):
         if free(m):
             add("phone", _norm_phone(m.group(0)), m)
+    for m in RX["phone_like"].finditer(text):
+        digits = re.sub(r"\D", "", m.group(1))
+        if free(m) and "+91" + digits[-10:] not in out["phone"] and 8 <= len(digits) <= 13:
+            add("phone_like", digits, m, 1)
     for m in RX["ifsc"].finditer(text):
         add("ifsc", m.group(1), m, 1)
     for m in RX["crypto_wallet"].finditer(text):

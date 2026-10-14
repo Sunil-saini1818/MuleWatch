@@ -162,6 +162,7 @@ export function PostRow({ p, fresh, why }) {
         <div className="pr-top">
           <span className="pr-case">{caseId(p.id)}</span>
           <span className="pr-cat">{p.category}</span>
+          {p.platform?.endsWith("· comment") && <span className="chip chip-cmt">comment</span>}
           {p.cluster_size > 1 && <span className="chip chip-ring">ring of {p.cluster_size}</span>}
           {p.label === "confirmed" && <span className="chip chip-ok">confirmed</span>}
           {p.label === "false_positive" && <span className="chip">false positive</span>}

@@ -71,33 +71,39 @@ def _parse_dt(s: str) -> datetime | None:
 # ----------------------------------------------------------------------------- forum
 
 def _forum_cards(listing_html: str) -> dict:
-    """{post id: fingerprint} from a forum listing page. The fingerprint (author + title) lets us
-    tell posts apart when a reseeded forum reuses ids."""
+    """{post id: (fingerprint, comment count)} from a forum listing page. The fingerprint (author +
+    title) tells posts apart when a reseeded forum reuses ids; the count tells us when to look for
+    new comments."""
     cards = {}
     for block in re.findall(r'<article[^>]*data-post-id="\d+".*?</article>', listing_html, re.S):
         pid = re.search(r'data-post-id="(\d+)"', block).group(1)
         author = (re.search(r'href="/u/([^"]+)"', block) or [None, ""])[1]
         title = html.unescape((re.search(r'class="title"><a[^>]*>(.*?)</a>', block, re.S) or [None, ""])[1])
-        cards[pid] = hashlib.sha1(f"{author}|{title}".encode()).hexdigest()[:12]
+        n = re.search(r"(\d+) comments?\b", block)
+        cards[pid] = (hashlib.sha1(f"{author}|{title}".encode()).hexdigest()[:12], int(n.group(1)) if n else 0)
     return cards
 
 
 def crawl_forum(session, src: Source) -> int:
+    """New posts and new comments. Each comment is scored as its own case, because sellers often
+    hide their ads under ordinary posts."""
     base = src.url.rstrip("/")
     listing = _get(base + "/new")
     listing.raise_for_status()
     cards = _forum_cards(listing.text)
     known = {p.remote_id for p in session.query(Post.remote_id).filter(Post.source == "forum").all()}
     new = 0
-    for pid, fp in sorted(cards.items(), key=lambda kv: int(kv[0])):
+    for pid, (fp, ncomments) in sorted(cards.items(), key=lambda kv: int(kv[0])):
         rid = f"{base}#{pid}#{fp}"
-        if rid in known:
-            continue
         legacy = f"{base}#{pid}"          # format used by earlier versions (id only)
-        if legacy in known:
+        if rid not in known and legacy in known:
             old = session.query(Post).filter_by(source="forum", remote_id=legacy).first()
             if old:
                 old.remote_id = rid
+            known.add(rid)
+        need_post = rid not in known
+        seen_comments = sum(1 for k in known if k.startswith(rid + "#c"))
+        if not need_post and ncomments <= seen_comments:
             continue
         page = _get(f"{base}/p/{pid}")
         if not page.ok:
@@ -106,19 +112,34 @@ def crawl_forum(session, src: Source) -> int:
         if not m:
             continue
         d = json.loads(m.group(1))
-        title, body = d.get("headline", ""), d.get("text", "")
-        link = d.get("sharedContent", {}).get("url", "") if isinstance(d.get("sharedContent"), dict) else ""
-        text = "\n".join(x for x in (title, body, link) if x)
-        image = ""
-        if d.get("image"):
-            image = _download_image(urljoin(base + "/", d["image"]), f"forum_{pid}_{fp}")
-        author = (d.get("author") or {}).get("name", "")
+        title = d.get("headline", "")
         community = d.get("isPartOf", {}).get("name", "") if isinstance(d.get("isPartOf"), dict) else ""
-        p = ingest(session, text=text, platform="Charcha forum" + (f" · {community}" if community else ""),
-               author=author, url=f"{base}/p/{pid}", image_path=image,
-               posted_at=_parse_dt(d.get("datePublished", "")), source="forum", recompute=False)
-        p.remote_id = rid
-        new += 1
+        platform = "Charcha forum" + (f" · {community}" if community else "")
+        if need_post:
+            body = d.get("text", "")
+            link = d.get("sharedContent", {}).get("url", "") if isinstance(d.get("sharedContent"), dict) else ""
+            text = "\n".join(x for x in (title, body, link) if x)
+            image = ""
+            if d.get("image"):
+                image = _download_image(urljoin(base + "/", d["image"]), f"forum_{pid}_{fp}")
+            p = ingest(session, text=text, platform=platform, author=(d.get("author") or {}).get("name", ""),
+                       url=f"{base}/p/{pid}", image_path=image,
+                       posted_at=_parse_dt(d.get("datePublished", "")), source="forum", recompute=False)
+            p.remote_id = rid
+            known.add(rid)
+            new += 1
+        for cm in d.get("comment") or []:
+            crid = f"{rid}#c{cm.get('identifier')}"
+            if crid in known or not (cm.get("text") or "").strip():
+                continue
+            c = ingest(session, text=cm["text"], platform=platform + " · comment",
+                       author=(cm.get("author") or {}).get("name", ""),
+                       url=cm.get("url") or f"{base}/p/{pid}#c{cm.get('identifier')}",
+                       posted_at=_parse_dt(cm.get("dateCreated", "")), source="forum", recompute=False)
+            c.remote_id = crid
+            c.reasons = (c.reasons or []) + [f"Posted as a comment on “{title[:80]}”"]
+            known.add(crid)
+            new += 1
     return new
 
 
@@ -236,8 +257,13 @@ def request_takedown(post: Post) -> tuple[bool, str]:
     base, pid = parts[0], parts[1]
     try:
         # the forum may have been reseeded since capture: make sure this id is still the same post
-        if len(parts) > 2 and _forum_cards(_get(base + "/new").text).get(pid) != parts[2]:
+        if len(parts) > 2 and (_forum_cards(_get(base + "/new").text).get(pid) or ("",))[0] != parts[2]:
             return False, "This post is no longer on the forum (the forum was reset), so there is nothing to take down."
+        if len(parts) > 3 and parts[3].startswith("c"):          # a single comment
+            r = requests.post(f"{base}/api/moderation/flag-comment/{parts[3][1:]}",
+                              headers={"X-Mod-Token": MOD_TOKEN, **UA},
+                              json={"case": f"MW-{post.id:05d}", "reason": post.category}, timeout=6)
+            return r.ok, ("Comment hidden on the forum." if r.ok else r.text[:200])
         r = requests.post(f"{base}/api/moderation/flag/{pid}", headers={"X-Mod-Token": MOD_TOKEN, **UA},
                           json={"case": f"MW-{post.id:05d}", "reason": post.category}, timeout=6)
         return r.ok, r.text[:200]

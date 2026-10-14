@@ -38,10 +38,22 @@ def main(threshold=55):
         rows.append((score, truth, title[:60]))
     for score, truth, title in sorted(rows, reverse=True):
         print(f"{score:6.1f}  {'MULE ' if truth else 'clean'}  {title}")
+    # comments: three seeded seller comments hidden under ordinary posts, the rest are normal replies
+    scam_commenters = {"quick_earn_99", "kitwala_support", "easy_paisa_jpr"}
+    ctp = cfp = ctn = cfn = 0
+    for *_, comments in POSTS:
+        for who, text in comments:
+            score = analyze(text)["base_score"]
+            truth, pred = who in scam_commenters, score >= threshold
+            ctp += truth and pred; cfn += truth and not pred; cfp += pred and not truth; ctn += not truth and not pred
+            if truth or pred:
+                print(f"{score:6.1f}  {'SCAM ' if truth else 'clean'}  comment by {who}: {text[:50]}")
+    print(f"comments: TP {ctp}  FP {cfp}  TN {ctn}  FN {cfn}")
+    tp += ctp; fp += cfp; tn += ctn; fn += cfn
     prec = tp / (tp + fp) if tp + fp else 0
     rec = tp / (tp + fn) if tp + fn else 0
     print(f"\nthreshold {threshold}:  TP {tp}  FP {fp}  TN {tn}  FN {fn}   precision {prec:.2f}  recall {rec:.2f}  "
-          f"(base score only, before ring/watchlist boosts)")
+          f"(posts + comments, base score only, before ring/watchlist boosts)")
 
 
 if __name__ == "__main__":

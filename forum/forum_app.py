@@ -62,9 +62,13 @@ def init_db():
             title TEXT, body TEXT, link TEXT, image TEXT, created TEXT, score INTEGER DEFAULT 1,
             flagged INTEGER DEFAULT 0, flag_case TEXT, flag_reason TEXT, flagged_at TEXT);
         CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY, post_id INTEGER, user_id INTEGER,
-            body TEXT, created TEXT);
+            body TEXT, created TEXT, flagged INTEGER DEFAULT 0, flag_case TEXT);
         CREATE TABLE IF NOT EXISTS votes(post_id INTEGER, user_id INTEGER, v INTEGER, PRIMARY KEY(post_id, user_id));
         """)
+        cols = {r[1] for r in c.execute("PRAGMA table_info(comments)")}
+        if "flagged" not in cols:          # databases created before comment moderation existed
+            c.execute("ALTER TABLE comments ADD COLUMN flagged INTEGER DEFAULT 0")
+            c.execute("ALTER TABLE comments ADD COLUMN flag_case TEXT")
 
 
 def hash_pw(pw: str, salt: Optional[str] = None) -> str:
@@ -206,6 +210,10 @@ def post_page(request: Request, pid: int):
                                  {"@type": "InteractionCounter", "interactionType": "https://schema.org/CommentAction",
                                   "userInteractionCount": p["ncomments"]}],
     }
+    if comments:
+        ld["comment"] = [{"@type": "Comment", "identifier": cm["id"], "url": f"{base}/p/{p['id']}#c{cm['id']}",
+                          "text": cm["body"], "dateCreated": cm["created"] + "Z",
+                          "author": {"@type": "Person", "name": cm["username"]}} for cm in comments]
     if p["link"]:
         ld["sharedContent"] = {"@type": "WebPage", "url": p["link"]}
     if p["image"]:
@@ -358,6 +366,22 @@ async def flag(pid: int, request: Request, x_mod_token: str = Header("")):
         if not cur.rowcount:
             raise HTTPException(404)
     return {"ok": True, "post": pid, "status": "under_review"}
+
+
+@app.post("/api/moderation/flag-comment/{cid}")
+async def flag_comment(cid: int, request: Request, x_mod_token: str = Header("")):
+    if not secrets.compare_digest(x_mod_token, MOD_TOKEN):
+        raise HTTPException(403, "bad moderation token")
+    data = {}
+    try:
+        data = await request.json()
+    except Exception:
+        pass
+    with db() as c:
+        cur = c.execute("UPDATE comments SET flagged=1, flag_case=? WHERE id=?", (str(data.get("case", ""))[:40], cid))
+        if not cur.rowcount:
+            raise HTTPException(404)
+    return {"ok": True, "comment": cid, "status": "hidden_under_review"}
 
 
 @app.post("/api/moderation/unflag/{pid}")

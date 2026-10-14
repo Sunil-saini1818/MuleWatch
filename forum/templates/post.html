@@ -41,10 +41,12 @@
     <p class="muted"><a href="/login?next=/p/{{ p.id }}">Log in</a> to join the discussion.</p>
   {% endif %}
   {% for c in comments %}
-    <div class="comment">
+    <div class="comment{% if c.flagged %} is-flagged{% endif %}" id="c{{ c.id }}">
       <span class="avatar xs" style="background:{{ c.avatar }}">{{ c.username[0]|upper }}</span>
       <div><div class="meta"><a class="by" href="/u/{{ c.username }}">u/{{ c.username }}</a><span class="dot">•</span>{{ c.created|ago }}</div>
-      <p>{{ c.body }}</p></div>
+      {% if c.flagged %}
+        <p class="flag-pill">🚔 Comment hidden: under review by the Cyber Cell{% if c.flag_case %} · {{ c.flag_case }}{% endif %}</p>
+      {% else %}<p>{{ c.body }}</p>{% endif %}</div>
     </div>
   {% else %}
     <p class="muted">No comments yet.</p>

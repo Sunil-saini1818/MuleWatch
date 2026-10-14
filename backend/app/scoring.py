@@ -34,7 +34,7 @@ def rule_engine(hits: list[dict], entities: dict, stats: dict) -> tuple[float, l
         capped = max(raw, spec["cap"]) if spec["cap"] < 0 else min(raw, spec["cap"])
         points += capped
         parts.append({"name": spec["label"], "points": round(capped, 1), "terms": sorted(terms)})
-        if group in ("mule_kit", "card_sale", "payout_lure"):
+        if group in ("mule_kit", "card_sale", "payout_lure", "money_lure"):
             ctx = " (quoted inside an awareness message)" if "awareness" in by_group else ""
             reasons.append(f"{spec['label']}{ctx}: " + ", ".join(f"“{t}”" for t in sorted(terms)[:5]))
         elif group == "awareness":
@@ -47,10 +47,15 @@ def rule_engine(hits: list[dict], entities: dict, stats: dict) -> tuple[float, l
             parts.append({"name": combo["label"], "points": combo["bonus"], "terms": []})
             reasons.append(combo["label"])
 
-    strong = {"mule_kit", "card_sale", "payout_lure"} & set(by_group)
+    strong = {"mule_kit", "card_sale", "payout_lure", "money_lure"} & set(by_group)
     risky_language = not awareness and bool(
         strong or ({"financial_object", "sale_intent"} <= set(by_group))
         or ({"financial_object", "evasion"} <= set(by_group)))
+    contact = [k for k in ("phone", "phone_like", "whatsapp", "telegram", "upi", "handle") if entities.get(k)]
+    if "money_lure" in by_group and contact and not awareness:
+        points += 27
+        parts.append({"name": "Easy-money lure with a contact", "points": 27, "terms": entities[contact[0]][:2]})
+        reasons.append("Easy-money offer with a contact: " + ", ".join(map(str, entities[contact[0]][:2])))
     ent_rules = [
         ("card_number", 22, "Card number pattern present", False),
         ("crypto_wallet", 8, "Crypto wallet address (USDT/BTC payouts)", True),
@@ -60,6 +65,7 @@ def rule_engine(hits: list[dict], entities: dict, stats: dict) -> tuple[float, l
         ("whatsapp", 7, "Moves buyers to WhatsApp", True),
         ("handle", 3, "Contact handle given", True),
         ("phone", 6, "Phone number for contact", True),
+        ("phone_like", 5, "Number given for contact (not a valid mobile format)", True),
         ("price", 7, "Price quoted per item", True),
     ]
     for kind, pts, label, needs_language in ent_rules:
@@ -71,12 +77,14 @@ def rule_engine(hits: list[dict], entities: dict, stats: dict) -> tuple[float, l
         points += 5
         parts.append({"name": "Shortened link hides destination", "points": 5, "terms": []})
 
-    return max(0.0, min(1.0, points / 100)), parts, reasons
+    return max(0.0, min(1.0, points / 100)), parts, reasons, risky_language
 
 
 def categorize(by_group: set, entities: dict, score: float) -> str:
     if score < 30:
         return "Benign"
+    if "money_lure" in by_group and not by_group & {"mule_kit", "card_sale", "payout_lure", "financial_object"}:
+        return "Easy-Money Lure"
     if "card_sale" in by_group or entities.get("card_number"):
         return "Card Sale"
     if "payout_lure" in by_group:
@@ -96,7 +104,7 @@ def analyze(text: str, ocr_text: str = "", stats: dict | None = None, llm: dict 
     spans = entities.pop("_spans")
     text_spans = [s for s in spans if s["end"] <= len(text)]
 
-    r, parts, reasons = rule_engine(text_hits + ocr_hits, entities, stats)
+    r, parts, reasons, risky_language = rule_engine(text_hits + ocr_hits, entities, stats)
 
     groups = {h["group"] for h in text_hits + ocr_hits}
     awareness = "awareness" in groups
@@ -104,6 +112,11 @@ def analyze(text: str, ocr_text: str = "", stats: dict | None = None, llm: dict 
     combined = (text + " " + ocr_text).strip()
     p = model().predict_proba(combined) if combined else 0.5
     m = max(0.0, (p - 0.5) * 2) * (0.4 if awareness else 1.0)
+    # the n-gram model is a supporting signal: on its own (no risky wording or identifiers found) and
+    # especially on very short texts like comments it is too easily swayed, so it counts for less
+    if not risky_language:
+        m *= 0.35
+    m *= min(1.0, 0.35 + len(combined) / 120)
     ml_features = model().top_features(combined) if p > 0.6 else []
     if m > 0.3:
         reasons.append(f"Text classifier confidence {p:.0%} (signals: {', '.join(ml_features[:4])})")
