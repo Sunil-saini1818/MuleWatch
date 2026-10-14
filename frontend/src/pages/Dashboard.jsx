@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import { BotCard } from "../components/ReportBot";
 import { Empty, PostRow } from "../components/ui";
 import { useLive } from "../live";
 
@@ -69,6 +70,7 @@ export default function Dashboard() {
         </section>
 
         <div className="dash-side">
+          <BotCard />
           <section className="panel">
             <div className="panel-head"><h2>Seller rings</h2><Link to="/network" className="more">Open network</Link></div>
             {stats?.ring_list?.length ? stats.ring_list.slice(0, 5).map((r) => (

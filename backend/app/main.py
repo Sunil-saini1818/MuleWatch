@@ -13,11 +13,11 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image as PILImage
 from sqlalchemy import func
 
-from . import crawler, llm
+from . import crawler, llm, reportbot
 from .alerts import telegram_enabled
 from .config import LEVEL_RANK, MEDIA_DIR, ROOT_DIR
 from .coordination import entity_keys
-from .db import Alert, Post, SessionLocal, Source, WatchItem, init_db
+from .db import Alert, Post, Report, SessionLocal, Source, WatchItem, init_db
 from .imaging import OCR_AVAILABLE
 from .ml import model, retrain
 from .pipeline import apply_feedback, ingest, recompute_all, training_samples
@@ -36,6 +36,7 @@ def startup():
             retrain(training_samples(s))
     crawler.ensure_default_sources()
     crawler.start()
+    reportbot.start()
 
 
 # ----------------------------------------------------------------------------- serializers
@@ -51,11 +52,26 @@ def summary(p: Post) -> dict:
         "ingested_at": p.ingested_at.isoformat() if p.ingested_at else None,
         "top_reason": (p.reasons or [""])[0],
         "entities": {k: v[:3] for k, v in (p.entities or {}).items() if k in ("phone", "upi", "telegram", "whatsapp")},
+        "reports": getattr(p, "_reports", 0),
     }
 
 
+def _attach_report_counts(s, posts):
+    if not posts:
+        return posts
+    counts = dict(s.query(Report.post_id, func.count(Report.id)).filter(Report.post_id.in_([p.id for p in posts]))
+                  .group_by(Report.post_id).all())
+    for p in posts:
+        p._reports = counts.get(p.id, 0)
+    return posts
+
+
 def detail(s, p: Post) -> dict:
+    _attach_report_counts(s, [p])
+    reps = s.query(Report).filter_by(post_id=p.id).order_by(Report.id).all() if p.id else []
     d = summary(p)
+    d["citizen_reports"] = [{"reporter": "Reporter " + r.reporter_hash[:6], "origin": r.origin,
+                             "at": r.created_at.isoformat()} for r in reps]
     rel_ids = [r["id"] for r in p.related or []]
     rel = {x.id: x for x in s.query(Post).filter(Post.id.in_(rel_ids)).all()} if rel_ids else {}
     d.update({
@@ -70,7 +86,7 @@ def detail(s, p: Post) -> dict:
 
 @app.get("/api/posts")
 def list_posts(level: str | None = None, platform: str | None = None, category: str | None = None,
-               q: str | None = None, cluster: int | None = None, label: str | None = None,
+               q: str | None = None, cluster: int | None = None, label: str | None = None, source: str | None = None,
                sort: str = "recent", limit: int = Query(50, le=500), offset: int = 0):
     with SessionLocal() as s:
         qry = s.query(Post)
@@ -82,6 +98,8 @@ def list_posts(level: str | None = None, platform: str | None = None, category: 
             qry = qry.filter(Post.category == category)
         if cluster is not None:
             qry = qry.filter(Post.cluster_id == cluster)
+        if source:
+            qry = qry.filter(Post.source == source)
         if label:
             qry = qry.filter(Post.label == (None if label == "pending" else label))
         if q:
@@ -89,7 +107,7 @@ def list_posts(level: str | None = None, platform: str | None = None, category: 
             qry = qry.filter((Post.text.like(like)) | (Post.ocr_text.like(like)) | (Post.author.like(like)))
         total = qry.count()
         order = Post.risk_score.desc() if sort == "risk" else Post.id.desc()
-        rows = qry.order_by(order).offset(offset).limit(limit).all()
+        rows = _attach_report_counts(s, qry.order_by(order).offset(offset).limit(limit).all())
         return {"total": total, "items": [summary(p) for p in rows]}
 
 
@@ -112,6 +130,8 @@ def feedback(pid: int, label: str = Body(..., embed=True)):
             raise HTTPException(404)
         apply_feedback(s, p, None if label == "clear" else label)
         s.commit()
+        if label in ("confirmed", "false_positive"):
+            reportbot.notify_reporters(pid, label)
         return detail(s, s.get(Post, pid))
 
 
@@ -125,6 +145,7 @@ def takedown(pid: int):
         if ok:
             p.takedown = "requested"
             s.commit()
+            reportbot.notify_reporters(pid, "takedown")
         return {"ok": ok, "message": msg}
 
 
@@ -265,6 +286,7 @@ def stats():
             "top_identifiers": [(k, n) for k, n in ids.most_common(12) if n > 1],
             "timeline": [{"bucket": k.strftime(fmt), **buckets[k]} for k in order][-30:],
             "alerts_unseen": s.query(Alert).filter_by(seen=False).count(),
+            "citizen_reports": s.query(Report).count(),
             "system": {"ocr": OCR_AVAILABLE, "llm": llm.enabled(), "telegram_alerts": telegram_enabled(),
                        "model_docs": model().docs, "crawler": crawler.status()},
         }
@@ -426,6 +448,24 @@ def toggle_source(sid: int, enabled: bool = Body(..., embed=True)):
             x.enabled = enabled
             s.commit()
     return sources()
+
+
+@app.get("/api/bot")
+def bot_status():
+    with SessionLocal() as s:
+        total = s.query(Report).count()
+        reporters = s.query(func.count(func.distinct(Report.reporter_hash))).scalar() or 0
+        cases = s.query(func.count(func.distinct(Report.post_id))).scalar() or 0
+        last = s.query(func.max(Report.created_at)).scalar()
+        recent = s.query(Report, Post).join(Post, Post.id == Report.post_id).order_by(Report.id.desc()).limit(8).all()
+        return reportbot.status() | {
+            "reports": total, "reporters": reporters, "cases": cases,
+            "last_report_at": last.isoformat() if last else None,
+            "link": f"https://t.me/{reportbot.status()['username']}" if reportbot.status()["username"] else "",
+            "recent": [{"post_id": p.id, "risk_level": p.risk_level, "risk_score": p.risk_score,
+                        "excerpt": (p.text or p.ocr_text or "")[:120], "origin": r.origin,
+                        "at": r.created_at.isoformat()} for r, p in recent],
+        }
 
 
 @app.post("/api/crawl")

@@ -92,6 +92,20 @@ class KeywordStat(Base):
     false_positive = Column(Integer, default=0)
 
 
+class Report(Base):
+    """A citizen report received through the Telegram reporting bot. Several reports can point to the
+    same case (people forwarding the same ad)."""
+    __tablename__ = "reports"
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey("posts.id"), index=True)
+    chat_id = Column(String(40), index=True)        # needed to send the reporter updates
+    reporter_hash = Column(String(16), index=True)  # shown in the UI instead of the person
+    reporter_name = Column(String(80), default="")
+    content_key = Column(String(32), index=True)
+    origin = Column(String(200), default="")        # "forwarded from channel @x" etc.
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 class Source(Base):
     """A monitored website / channel."""
     __tablename__ = "sources"

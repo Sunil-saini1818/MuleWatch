@@ -4,7 +4,7 @@ import { api, LEVELS } from "../api";
 import { Empty, PostRow } from "../components/ui";
 import { useLive } from "../live";
 
-const CATEGORIES = ["Mule Account Sale", "Account-Holder Recruitment", "Card Sale", "KYC Fraud", "Suspicious Financial Ad", "Benign"];
+const CATEGORIES = ["Mule Account Sale", "Account-Holder Recruitment", "Card Sale", "KYC Fraud", "Easy-Money Lure", "Suspicious Financial Ad", "Benign"];
 
 export default function Cases() {
   const [sp, setSp] = useSearchParams();
@@ -15,7 +15,7 @@ export default function Cases() {
   const set = (k, v) => { const n = new URLSearchParams(sp); v ? n.set(k, v) : n.delete(k); setSp(n, { replace: true }); };
 
   useEffect(() => {
-    api.posts({ level: sp.get("level"), category: sp.get("category"), q: sp.get("q"), label: sp.get("label"),
+    api.posts({ level: sp.get("level"), category: sp.get("category"), q: sp.get("q"), label: sp.get("label"), source: sp.get("source"),
       cluster: sp.get("cluster"), sort: sp.get("sort") || "risk", limit: 200 }).then(setData).catch(() => {});
   }, [sp, version]);
 
@@ -45,6 +45,16 @@ export default function Cases() {
           <option value="pending">Not reviewed</option>
           <option value="confirmed">Confirmed</option>
           <option value="false_positive">False positive</option>
+        </select>
+        <select value={sp.get("source") || ""} onChange={(e) => set("source", e.target.value)} aria-label="Source">
+          <option value="">Any source</option>
+          <option value="forum">Forum posts and comments</option>
+          <option value="citizen">Citizen reports</option>
+          <option value="url">Checked links</option>
+          <option value="page">Monitored pages</option>
+          <option value="manual">Manual checks</option>
+          <option value="extension">Chrome extension</option>
+          <option value="telegram">Telegram channels</option>
         </select>
         <select value={sp.get("sort") || "risk"} onChange={(e) => set("sort", e.target.value)} aria-label="Sort">
           <option value="risk">Highest risk first</option>

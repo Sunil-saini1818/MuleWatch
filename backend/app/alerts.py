@@ -1,4 +1,5 @@
 """Alerting: every High/Critical post becomes a dashboard alert; Telegram push if configured."""
+import os
 import threading
 
 import requests
@@ -13,7 +14,8 @@ def telegram_enabled() -> bool:
 
 def _send_telegram(text: str) -> bool:
     try:
-        r = requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+        root = os.getenv("TELEGRAM_API_BASE", "https://api.telegram.org").rstrip("/")
+        r = requests.post(f"{root}/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
                           json={"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML",
                                 "disable_web_page_preview": True}, timeout=10)
         return r.ok

@@ -3,6 +3,7 @@ import { api, caseId, timeAgo } from "../api";
 import { Icon, RiskBadge } from "../components/ui";
 import { useLive } from "../live";
 import { Link } from "react-router-dom";
+import { BotPanel } from "../components/ReportBot";
 
 export default function Sources() {
   const { version } = useLive();
@@ -56,6 +57,7 @@ export default function Sources() {
         {msg && <p className="note">{msg}</p>}
       </section>
 
+      <BotPanel />
       <div className="two-col">
         <section className="panel">
           <div className="panel-head"><h2>Alert log</h2><span className="muted small">{sys?.telegram_alerts ? "Telegram push is on" : "Telegram push off (set TELEGRAM_BOT_TOKEN in .env)"}</span></div>

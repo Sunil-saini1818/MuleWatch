@@ -30,6 +30,7 @@ export const api = {
   addSource: (kind, url, name) => req("/api/sources", json("POST", { kind, url, name })),
   toggleSource: (id, enabled) => req(`/api/sources/${id}`, json("PATCH", { enabled })),
   crawl: () => req("/api/crawl", { method: "POST" }),
+  bot: () => req("/api/bot"),
 };
 
 export const LEVELS = ["Critical", "High", "Medium", "Low"];

@@ -111,6 +111,15 @@ export default function CaseDetail() {
             {p.related?.length ? p.related.map((r) => <PostRow key={r.id} p={r} why={r.why} />)
               : <p className="muted">Not linked to any other post by text, image or identifiers.</p>}
           </section>
+          {p.citizen_reports?.length > 0 && (
+            <section className="panel">
+              <div className="panel-head"><h2>Citizen reports ({p.citizen_reports.length})</h2></div>
+              <p className="small muted">Reported through the Telegram bot. Reporters are told when you confirm, dismiss or take this down.</p>
+              {p.citizen_reports.map((r, i) => (
+                <div key={i} className="cit-row"><b>{r.reporter}</b><span>{r.origin}</span><span className="muted small">{timeAgo(r.at)}</span></div>
+              ))}
+            </section>
+          )}
           <section className="panel">
             <div className="panel-head"><h2>Evidence integrity</h2></div>
             <p className="small">SHA-256 of the captured post, metadata and image, recorded at capture time:</p>

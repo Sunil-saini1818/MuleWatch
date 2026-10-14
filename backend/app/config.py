@@ -32,6 +32,10 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
 ALERT_MIN_LEVEL = os.getenv("ALERT_MIN_LEVEL", "Critical")   # Critical | High
 
+# Citizen reporting bot (Telegram). Falls back to the alert bot's token when not set.
+REPORT_BOT_TOKEN = os.getenv("REPORT_BOT_TOKEN", "") or TELEGRAM_BOT_TOKEN
+REPORTS_PER_HOUR = int(os.getenv("REPORTS_PER_HOUR", "30"))
+
 # Optional LLM second opinion (Claude). Leave empty to run fully offline.
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "claude-haiku-5-5")

@@ -54,10 +54,20 @@ cp .env.example .env        # set FORUM_URL / FORUM_MOD_TOKEN (and optional Tele
 * Dev mode for the UI: `cd frontend && npm run dev` (proxies the API on :8000).
 * Tests: `cd backend && python -m pytest -q`
 
-### Optional: Telegram alerts on your phone
-1. Telegram → **@BotFather** → `/newbot` → copy the token.
-2. Send any message to your new bot, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy `chat.id`.
-3. Put both in `.env` as `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID`, restart. Critical alerts now arrive on your phone (the first crawl of a source doesn't push old posts).
+### Telegram bot: phone alerts + citizen reporting
+One bot does both jobs.
+1. Telegram → **@BotFather** → `/newbot` → name it (e.g. *MuleWatch Report*) and pick a username ending in `bot` (e.g. `SKITMuleWatchBot`; `MuleWatchBot` itself may be taken). Copy the token.
+2. Optional polish in @BotFather: `/setdescription` → *Forward a suspicious message, link or screenshot about bank accounts or ATM cards for sale and get an instant check.* and `/setuserpic`.
+3. Put the token in `.env` as `TELEGRAM_BOT_TOKEN` and restart `./run.sh`. **Monitored sources** shows *Citizen reporting bot: Online* with a QR code (also on the command center), so judges can scan and try it.
+4. For Critical alerts on your phone: send your bot any message, open `https://api.telegram.org/bot<TOKEN>/getUpdates`, copy `chat.id` into `TELEGRAM_CHAT_ID`, restart.
+
+**What the reporting bot does**
+* Accepts typed text, **forwarded messages** (from channels, groups or people), **links** (it opens them like *Check a post*) and **screenshots** (read with OCR).
+* Replies in seconds with the risk level, the reasons, the phone/UPI/Telegram details it found, whether it's linked to a known seller ring, and safety advice in English and Hindi (with 1930 / cybercrime.gov.in).
+* Files each report as a case tagged *reported by N citizens*; the same ad reported by several people is grouped on one case. A forwarded channel's `t.me/<name>` becomes an identifier, so it links into seller rings.
+* When an investigator clicks **Confirm fraud**, **False positive** or **Request takedown**, everyone who reported that case gets a message.
+* `/status` shows a person their last 5 reports; reporters appear only as an anonymous ID in the command center; 30 reports per person per hour (`REPORTS_PER_HOUR`).
+* Works from the laptop (long polling), no public URL needed. Only one copy of MuleWatch can run per bot token.
 
 ### Optional: AI analyst
 Set `ANTHROPIC_API_KEY` in `.env` to add a Claude second opinion (text + image) to manual checks on the "Check a post" page. Everything works offline without it.

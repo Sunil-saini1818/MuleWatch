@@ -1,0 +1,89 @@
+"""Reporting bot logic, driven with a fake Telegram API:  python -m pytest -q tests"""
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+os.environ.setdefault("MW_DATA_DIR", tempfile.mkdtemp())
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app import reportbot  # noqa: E402
+from app.db import Post, Report, SessionLocal, init_db  # noqa: E402
+from app.ml import model, retrain  # noqa: E402
+from app.pipeline import base_training_set  # noqa: E402
+
+POSTER = Path(__file__).resolve().parents[2] / "forum" / "seed" / "images" / "kit_poster.png"
+
+
+class FakeTG:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, chat_id, text, reply_to=None):
+        self.sent.append((chat_id, text))
+
+    def typing(self, chat_id):
+        pass
+
+    def download(self, file_id):
+        return POSTER.read_bytes()
+
+
+def upd(chat, text=None, **extra):
+    msg = {"message_id": 1, "chat": {"id": chat, "type": "private"}, "from": {"id": chat, "first_name": "Asha"}}
+    if text is not None:
+        msg["text"] = text
+    msg.update(extra)
+    return {"update_id": 1, "message": msg}
+
+
+def setup_module():
+    init_db()
+    if not model().trained:
+        retrain(base_training_set())
+
+
+def test_reporting_flow():
+    tg = FakeTG()
+    reportbot.handle_update(upd(101, "/start"), tg)
+    assert "report suspicious financial ads" in tg.sent[-1][1]
+
+    ad = "SBI current account full kit available, ATM + passbook + net banking, KYC done. 15k. Call 98290 41736"
+    reportbot.handle_update(upd(101, ad), tg)
+    reply = tg.sent[-1][1]
+    assert "scam" in reply and "MW-" in reply and "1930" in reply
+
+    # same ad from another person -> same case, counted twice
+    reportbot.handle_update(upd(202, ad.replace("15k", "16k")), tg)
+    assert "Already reported by 2 people" in tg.sent[-1][1]
+
+    # forwarded from a public channel: the channel becomes an identifier that links posts
+    reportbot.handle_update(upd(303, "Fresh current account kit ready, DM now", forward_origin={
+        "type": "channel", "chat": {"id": -100, "type": "channel", "title": "Kit Wala", "username": "kitwala_jpr"}}), tg)
+    with SessionLocal() as s:
+        p = s.query(Post).order_by(Post.id.desc()).first()
+        assert "t.me/kitwala_jpr" in p.entities.get("telegram", [])
+        assert any("Forwarded from channel Kit Wala" in r for r in p.reasons)
+
+    # screenshot only
+    reportbot.handle_update(upd(404, None, photo=[{"file_id": "small"}, {"file_id": "big"}]), tg)
+    assert "scam" in tg.sent[-1][1].lower()
+
+    # harmless message
+    reportbot.handle_update(upd(505, "Is this the right number for SBI customer care? Need help with my passbook"), tg)
+    assert "Looks OK" in tg.sent[-1][1]
+
+    reportbot.handle_update(upd(101, "/status"), tg)
+    assert "Your recent reports" in tg.sent[-1][1] and "under review" in tg.sent[-1][1]
+
+    with SessionLocal() as s:
+        assert s.query(Report).count() == 5
+        assert {p.source for p in s.query(Post).all()} == {"citizen"}
+
+
+def test_rate_limit(monkeypatch):
+    monkeypatch.setattr(reportbot, "REPORTS_PER_HOUR", 2)
+    tg = FakeTG()
+    for i in range(3):
+        reportbot.handle_update(upd(999, f"some message number {i} about nothing in particular"), tg)
+    assert "a lot of reports" in tg.sent[-1][1]
