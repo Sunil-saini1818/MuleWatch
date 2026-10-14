@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Image analysis: OCR (Tesseract, optional), perceptual hash for repost detection and
 card/passbook cue detection from OCR text."""
 import re

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """MuleWatch command-center API."""
 import asyncio
 import io

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Optional 'AI analyst' second opinion using Claude. Disabled unless ANTHROPIC_API_KEY is set.
 The system works fully offline without it."""
 import base64

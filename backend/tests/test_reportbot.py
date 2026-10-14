@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Reporting bot logic, driven with a fake Telegram API:  python -m pytest -q tests"""
 import os
 import sys
@@ -67,7 +68,11 @@ def test_reporting_flow():
 
     # screenshot only
     reportbot.handle_update(upd(404, None, photo=[{"file_id": "small"}, {"file_id": "big"}]), tg)
-    assert "scam" in tg.sent[-1][1].lower()
+    from app.imaging import OCR_AVAILABLE
+    if OCR_AVAILABLE:
+        assert "scam" in tg.sent[-1][1].lower()
+    else:
+        assert "no signs" in tg.sent[-1][1].lower()
 
     # harmless message
     reportbot.handle_update(upd(505, "Is this the right number for SBI customer care? Need help with my passbook"), tg)

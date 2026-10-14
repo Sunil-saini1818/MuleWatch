@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Core detection tests:  cd backend && python -m pytest -q"""
 import os
 import sys

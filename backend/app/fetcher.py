@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Fetch a single public URL (post, ad, profile page, Telegram post or direct image) and turn it into
 text + images that the detection pipeline can score.
 

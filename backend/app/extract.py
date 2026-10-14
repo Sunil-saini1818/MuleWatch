@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Indicator extraction: keywords (with character spans), phone numbers, UPI IDs, URLs,
 Telegram / WhatsApp handles, IFSC codes, card numbers, crypto wallets and prices."""
 import json

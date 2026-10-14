@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Central configuration. Everything is overridable through environment variables (.env)."""
 import os
 from pathlib import Path

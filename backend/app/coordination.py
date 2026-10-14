@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Detect repeated / coordinated advertisements.
 
 Three independent link types feed one union-find:

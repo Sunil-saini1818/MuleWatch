@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Hybrid, explainable risk scoring.
 
 final = noisy-OR( rule engine , text classifier , image cues , [LLM] ) * 100

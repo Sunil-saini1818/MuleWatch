@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Evaluate the detector on the 50 Charcha forum posts (never used for training).
 
     cd backend && python training/evaluate.py

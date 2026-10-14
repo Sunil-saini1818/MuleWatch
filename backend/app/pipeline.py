@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Ingestion pipeline: OCR -> extraction -> scoring -> coordination -> alerts."""
 import hashlib
 from collections import defaultdict
