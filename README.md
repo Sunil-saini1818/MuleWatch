@@ -47,6 +47,8 @@ cp .env.example .env        # set FORUM_URL / FORUM_MOD_TOKEN (and optional Tele
 ./run.sh                    # → http://localhost:8000
 ```
 
+**macOS:** install [Homebrew](https://brew.sh), then `brew install git python@3.12 tesseract tesseract-lang` and use the same `git clone … && ./run.sh` steps. If port 8000 is taken (AirPlay Receiver sometimes uses 5000/7000, other apps 8000), run.sh picks the next free port.
+
 * `./run.sh --local-forum` also starts the forum locally on :8100 — **offline backup** if the venue Wi-Fi or server fails.
 * `./run.sh --reset` clears collected cases (the forum keeps its posts).
 * `./run.sh --port 8010` picks a port (if 8000 is busy, the next free port is used automatically).

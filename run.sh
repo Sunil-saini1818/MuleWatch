@@ -32,12 +32,24 @@ done
 
 [ -f .env ] || cp .env.example .env
 
-PY="$(command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3)"
-"$PY" -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ needed"' || exit 1
+if [ "$(uname)" = "Darwin" ]; then
+  INSTALL_HINT="brew install python@3.12 tesseract tesseract-lang"
+  # Homebrew paths (Apple silicon and Intel) come first so the old system python3 isn't picked
+  export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+else
+  INSTALL_HINT="sudo apt install -y python3 python3-venv tesseract-ocr tesseract-ocr-hin"
+fi
+
+PY="$(command -v python3.13 || command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3 || true)"
+if [ -z "$PY" ] || ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+  echo "!! Python 3.10 or newer is needed (found: ${PY:-none} $("${PY:-false}" --version 2>&1 || true))."
+  echo "   Install it with: $INSTALL_HINT"
+  exit 1
+fi
 
 if [ ! -d .venv ]; then
   echo "==> Creating virtualenv"
-  "$PY" -m venv .venv || { echo "!! venv failed. Run: sudo apt install -y python3-venv && rm -rf .venv"; exit 1; }
+  "$PY" -m venv .venv || { echo "!! venv failed. Run: $INSTALL_HINT && rm -rf .venv"; exit 1; }
 fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
@@ -48,7 +60,7 @@ if [ ! -f .venv/.deps-ok ] || [ backend/requirements.txt -nt .venv/.deps-ok ]; t
   touch .venv/.deps-ok
 fi
 
-command -v tesseract >/dev/null || echo "!! Tesseract OCR not found — image text won't be read. Install: sudo apt install tesseract-ocr tesseract-ocr-hin"
+command -v tesseract >/dev/null || echo "!! Tesseract OCR not found — image text won't be read. Install: $INSTALL_HINT"
 
 if [ ! -f frontend/dist/index.html ]; then
   if command -v npm >/dev/null; then
