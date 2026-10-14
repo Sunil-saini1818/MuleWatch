@@ -6,22 +6,25 @@
 #   ./run.sh --reset             wipe collected cases and start fresh
 #   ./run.sh --port 8010         use another port for the command center
 #   ./run.sh --forum-port 8110   use another port for the local forum
+#   ./run.sh --lan               let other devices on the network open the command center
+#                                (it has no login, so the default is this laptop only)
 #
 # If the default port is taken by another program, the next free port is used automatically.
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$(pwd)"
 
-LOCAL_FORUM=0; RESET=0; PORT="${MW_PORT:-}"; FPORT="${FORUM_PORT:-}"
+LOCAL_FORUM=0; RESET=0; LAN=0; PORT="${MW_PORT:-}"; FPORT="${FORUM_PORT:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --local-forum) LOCAL_FORUM=1 ;;
     --reset) RESET=1 ;;
+    --lan) LAN=1 ;;
     --port) PORT="$2"; shift ;;
     --port=*) PORT="${1#*=}" ;;
     --forum-port) FPORT="$2"; shift ;;
     --forum-port=*) FPORT="${1#*=}" ;;
-    -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1 (see ./run.sh --help)"; exit 1 ;;
   esac
   shift
@@ -104,6 +107,7 @@ echo "==> MuleWatch command center:  http://localhost:$PORT"
 echo "    (Ctrl+C to stop)"
 echo
 cd backend
-uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --log-level warning &
+HOST=127.0.0.1; [ "$LAN" = 1 ] && HOST=0.0.0.0
+uvicorn app.main:app --host "$HOST" --port "$PORT" --log-level warning &
 PIDS+=($!)
 wait

@@ -11,9 +11,8 @@ import json
 import os
 import secrets
 import sqlite3
-import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -231,7 +230,8 @@ def _start_session(user_id: int, next_url: str):
     tok = secrets.token_urlsafe(24)
     with db() as c:
         c.execute("INSERT INTO sessions VALUES(?,?,?)", (tok, user_id, datetime.utcnow().isoformat()))
-    r = RedirectResponse(next_url if next_url.startswith("/") else "/", status_code=303)
+    safe = next_url.startswith("/") and not next_url.startswith(("//", "/\\"))   # no open redirect
+    r = RedirectResponse(next_url if safe else "/", status_code=303)
     r.set_cookie("charcha_session", tok, httponly=True, samesite="lax", max_age=7 * 86400)
     return r
 

@@ -1,15 +1,16 @@
 """MuleWatch command-center API."""
 import asyncio
+import io
 import json
 import uuid
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import datetime
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from PIL import Image as PILImage
 from sqlalchemy import func
 
 from . import crawler, llm
@@ -151,21 +152,37 @@ async def analyze_endpoint(text: str = Form(""), platform: str = Form("Manual su
     if image is not None and image.filename:
         data = await image.read()
         if len(data) > 8 * 1024 * 1024:
-            raise HTTPException(413, "image too large")
-        ext = Path(image.filename).suffix.lower()[:5] or ".png"
+            raise HTTPException(413, "Image too large (max 8 MB)")
+        # only real images are stored: they are served from this origin, so an uploaded
+        # .html/.svg would otherwise run as script on the command center
+        try:
+            with PILImage.open(io.BytesIO(data)) as im:
+                fmt = (im.format or "").upper()
+                im.verify()
+        except Exception:
+            raise HTTPException(400, "That file isn't a readable image (PNG, JPG, WEBP, GIF or BMP)")
+        ext = {"PNG": ".png", "JPEG": ".jpg", "WEBP": ".webp", "GIF": ".gif", "BMP": ".bmp"}.get(fmt)
+        if not ext:
+            raise HTTPException(400, f"Unsupported image type {fmt or 'unknown'}")
         image_path = f"upload_{uuid.uuid4().hex[:10]}{ext}"
         (MEDIA_DIR / image_path).write_bytes(data)
     if not text.strip() and not image_path:
         raise HTTPException(400, "Provide text, a URL or an image")
     with SessionLocal() as s:
-        p = ingest(s, text=text, platform=platform, author=author, url=url, image_path=image_path,
-                   source=source, use_llm=True)
-        s.commit()
-        out = detail(s, p)
-        if not save:
-            s.delete(p)
+        if save:
+            p = ingest(s, text=text, platform=platform, author=author, url=url, image_path=image_path,
+                       source=source, use_llm=True)
             s.commit()
-            recompute_all(s, alert=False)
+            return detail(s, p)
+        # preview: score it (including ring links) without raising alerts or keeping the case
+        p = ingest(s, text=text, platform=platform, author=author, url=url, image_path=image_path,
+                   source="preview", use_llm=True, recompute=False)
+        recompute_all(s, alert=False)
+        out = detail(s, p) | {"id": None}
+        s.query(Alert).filter(Alert.post_id == p.id).delete()
+        s.delete(p)
+        s.commit()
+        recompute_all(s, alert=False)
         return out
 
 
@@ -309,6 +326,8 @@ async def events():
             tick += 1
             with SessionLocal() as s:
                 for p in s.query(Post).filter(Post.id > last_post).order_by(Post.id).all():
+                    if p.source == "preview":
+                        continue
                     last_post = p.id
                     yield f"event: post\ndata: {json.dumps(summary(p))}\n\n"
                 for a in s.query(Alert).filter(Alert.id > last_alert).order_by(Alert.id).all():

@@ -6,6 +6,7 @@
 * TelegramPublic — reads public channel previews at https://t.me/s/<channel> (no login/API).
 
 A background thread polls every enabled source every CRAWL_INTERVAL seconds."""
+import hashlib
 import html
 import json
 import os
@@ -67,16 +68,34 @@ def _parse_dt(s: str) -> datetime | None:
 
 # ----------------------------------------------------------------------------- forum
 
+def _forum_cards(listing_html: str) -> dict:
+    """{post id: fingerprint} from a forum listing page. The fingerprint (author + title) lets us
+    tell posts apart when a reseeded forum reuses ids."""
+    cards = {}
+    for block in re.findall(r'<article[^>]*data-post-id="\d+".*?</article>', listing_html, re.S):
+        pid = re.search(r'data-post-id="(\d+)"', block).group(1)
+        author = (re.search(r'href="/u/([^"]+)"', block) or [None, ""])[1]
+        title = html.unescape((re.search(r'class="title"><a[^>]*>(.*?)</a>', block, re.S) or [None, ""])[1])
+        cards[pid] = hashlib.sha1(f"{author}|{title}".encode()).hexdigest()[:12]
+    return cards
+
+
 def crawl_forum(session, src: Source) -> int:
     base = src.url.rstrip("/")
     listing = _get(base + "/new")
     listing.raise_for_status()
-    ids = sorted({int(x) for x in re.findall(r'href="/p/(\d+)"', listing.text)})
+    cards = _forum_cards(listing.text)
     known = {p.remote_id for p in session.query(Post.remote_id).filter(Post.source == "forum").all()}
     new = 0
-    for pid in ids:
-        rid = f"{base}#{pid}"
+    for pid, fp in sorted(cards.items(), key=lambda kv: int(kv[0])):
+        rid = f"{base}#{pid}#{fp}"
         if rid in known:
+            continue
+        legacy = f"{base}#{pid}"          # format used by earlier versions (id only)
+        if legacy in known:
+            old = session.query(Post).filter_by(source="forum", remote_id=legacy).first()
+            if old:
+                old.remote_id = rid
             continue
         page = _get(f"{base}/p/{pid}")
         if not page.ok:
@@ -90,7 +109,7 @@ def crawl_forum(session, src: Source) -> int:
         text = "\n".join(x for x in (title, body, link) if x)
         image = ""
         if d.get("image"):
-            image = _download_image(urljoin(base + "/", d["image"]), f"forum_{pid}")
+            image = _download_image(urljoin(base + "/", d["image"]), f"forum_{pid}_{fp}")
         author = (d.get("author") or {}).get("name", "")
         community = d.get("isPartOf", {}).get("name", "") if isinstance(d.get("isPartOf"), dict) else ""
         p = ingest(session, text=text, platform="Charcha forum" + (f" · {community}" if community else ""),
@@ -184,8 +203,12 @@ def ensure_default_sources():
 def request_takedown(post: Post) -> tuple[bool, str]:
     if post.source != "forum" or "#" not in (post.remote_id or ""):
         return False, "Takedown API is only wired for the Charcha forum in this demo."
-    base, pid = post.remote_id.split("#", 1)
+    parts = post.remote_id.split("#")
+    base, pid = parts[0], parts[1]
     try:
+        # the forum may have been reseeded since capture: make sure this id is still the same post
+        if len(parts) > 2 and _forum_cards(_get(base + "/new").text).get(pid) != parts[2]:
+            return False, "This post is no longer on the forum (the forum was reset), so there is nothing to take down."
         r = requests.post(f"{base}/api/moderation/flag/{pid}", headers={"X-Mod-Token": MOD_TOKEN, **UA},
                           json={"case": f"MW-{post.id:05d}", "reason": post.category}, timeout=6)
         return r.ok, r.text[:200]

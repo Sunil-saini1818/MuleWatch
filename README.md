@@ -49,6 +49,8 @@ cp .env.example .env        # set FORUM_URL / FORUM_MOD_TOKEN (and optional Tele
 
 * `./run.sh --local-forum` also starts the forum locally on :8100 — **offline backup** if the venue Wi-Fi or server fails.
 * `./run.sh --reset` clears collected cases (the forum keeps its posts).
+* `./run.sh --port 8010` picks a port (if 8000 is busy, the next free port is used automatically).
+* The command center has no login, so it listens on this laptop only. `./run.sh --lan` exposes it to the local network.
 * Dev mode for the UI: `cd frontend && npm run dev` (proxies the API on :8000).
 * Tests: `cd backend && python -m pytest -q`
 

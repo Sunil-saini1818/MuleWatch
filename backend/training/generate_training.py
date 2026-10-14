@@ -64,27 +64,27 @@ def benign():
     b = random.choice(BANKS)
     forms = [
         lambda: f"Open a zero balance savings account with {b} through the official app. Visit your nearest branch for details.",
-        lambda: f"Beware! Never sell or rent your bank account — it is a crime and makes you a money mule. Report to 1930 or cybercrime.gov.in",
+        lambda: "Beware! Never sell or rent your bank account — it is a crime and makes you a money mule. Report to 1930 or cybercrime.gov.in",
         lambda: f"I lost my {b} ATM card yesterday, how to block it? Customer care not responding.",
         lambda: f"{b} credit card annual fee waived for first year, apply online on the official website.",
         lambda: f"Selling my old iPhone 12, 128GB, good condition, ₹28000. Contact {phone()}",
         lambda: f"Room available for rent near Malviya Nagar, ₹7000 per month, students preferred. Call {phone()}",
         lambda: f"Hiring: accountant with 2 years experience, Tally & GST knowledge. Send CV to hr@{random.choice(['abcfoods', 'ravitraders', 'jaipurtex'])}.com",
-        lambda: f"Which bank is best for opening a current account for a small shop? Need UPI and low charges.",
+        lambda: "Which bank is best for opening a current account for a small shop? Need UPI and low charges.",
         lambda: f"My debit card was blocked after 3 wrong PIN attempts, how long does unblock take at {b}?",
         lambda: f"Fraud alert: someone is calling and asking for OTP in the name of {b} KYC update. Don't share!",
         lambda: f"Bike for sale — Honda Activa 2019, single owner, ₹42000. WhatsApp {phone()}",
-        lambda: f"Study group for GATE CSE starting this Sunday at central library, everyone welcome.",
+        lambda: "Study group for GATE CSE starting this Sunday at central library, everyone welcome.",
         lambda: f"Kisi ko pata hai {b} me passbook update kaise hota hai? Machine kaam nahi kar rahi.",
-        lambda: f"Mera account freeze ho gaya bina kisi reason ke, kya karun? Branch walon ne cyber cell bola.",
-        lambda: f"सावधान! अपना बैंक खाता किसी को किराये पर न दें, यह अपराध है। 1930 पर शिकायत करें।",
+        lambda: "Mera account freeze ho gaya bina kisi reason ke, kya karun? Branch walon ne cyber cell bola.",
+        lambda: "सावधान! अपना बैंक खाता किसी को किराये पर न दें, यह अपराध है। 1930 पर शिकायत करें।",
         lambda: f"Second hand books for sale — engineering 3rd year, half price. Contact {phone()}",
         lambda: f"Got my {b} credit card limit increased after 1 year of usage, anyone else?",
         lambda: f"Tiffin service available in Mansarovar, home-made food, ₹2500/month. Call {phone()}",
         lambda: f"How to link Aadhaar with savings account online? Is it mandatory for {b}?",
         lambda: f"Job alert: {b} PO recruitment 2026 notification out, apply online before the last date.",
         lambda: f"Pay rent via UPI {upi()} — landlord asked to share screenshot after payment.",
-        lambda: f"Workshop on cyber safety: how money mule networks recruit students via Telegram. Register free.",
+        lambda: "Workshop on cyber safety: how money mule networks recruit students via Telegram. Register free.",
     ]
     return random.choice(forms)()
 
