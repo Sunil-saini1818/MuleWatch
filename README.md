@@ -11,7 +11,10 @@
 > **Problem Statement SKIT002:** *AI-Based Detection of Suspicious Financial Advertisements*  
 > **Host Institution:** Swami Keshvanand Institute of Technology, Management & Gramothan (SKIT Jaipur)  
 > **Repository:** [https://github.com/Sunil-saini1818/MuleWatch](https://github.com/Sunil-saini1818/MuleWatch)  
-> **Pitch Deck (PPTX):** [`MuleWatch_Presentation_IEEE_Ignite_2026.pptx`](MuleWatch_Presentation_IEEE_Ignite_2026.pptx)
+> **Pitch Deck Downloads:**  
+> • **Apple Keynote:** [`MuleWatch_Presentation_IEEE_Ignite_2026.key`](MuleWatch_Presentation_IEEE_Ignite_2026.key)  
+> • **Microsoft PowerPoint:** [`MuleWatch_Presentation_IEEE_Ignite_2026.pptx`](MuleWatch_Presentation_IEEE_Ignite_2026.pptx)  
+> • **Universal PDF:** [`MuleWatch_Presentation_IEEE_Ignite_2026.pdf`](MuleWatch_Presentation_IEEE_Ignite_2026.pdf)
 
 ---
 
@@ -249,7 +252,7 @@ Developed with ❤️ for **IEEE Ignite Hackathon 2026** at **SKIT Jaipur**.
 * **Problem ID:** `SKIT002`
 * **Institution:** Swami Keshvanand Institute of Technology, Management & Gramothan (SKIT Jaipur)
 * **GitHub Repository:** [https://github.com/Sunil-saini1818/MuleWatch](https://github.com/Sunil-saini1818/MuleWatch)
-* **Pitch Deck:** [`MuleWatch_Presentation_IEEE_Ignite_2026.pptx`](MuleWatch_Presentation_IEEE_Ignite_2026.pptx)
+* **Pitch Deck Downloads:** [`Keynote (.key)`](MuleWatch_Presentation_IEEE_Ignite_2026.key) | [`PowerPoint (.pptx)`](MuleWatch_Presentation_IEEE_Ignite_2026.pptx) | [`Universal PDF (.pdf)`](MuleWatch_Presentation_IEEE_Ignite_2026.pdf)
 
 ---
 *MuleWatch — Autonomous Cyber Defense Protecting India's Digital Financial Ecosystem.*
