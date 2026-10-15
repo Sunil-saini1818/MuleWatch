@@ -12,23 +12,26 @@ def build_presentation():
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
 
-    # Color Palette Definitions
-    C_NAVY_DARK = RGBColor(11, 19, 43)        # #0B132B
-    C_NAVY_CARD = RGBColor(22, 33, 62)        # #16213E
-    C_NAVY_BORDER = RGBColor(42, 60, 95)      # #2A3C5F
-    C_INDIGO_ACCENT = RGBColor(79, 70, 229)   # #4F46E5
-    C_INDIGO_LIGHT = RGBColor(99, 102, 241)   # #6366F1
-    C_CYAN_ACCENT = RGBColor(6, 182, 212)     # #06B6D4
-    C_RED_ACCENT = RGBColor(220, 38, 38)      # #DC2626
-    C_GREEN_ACCENT = RGBColor(16, 185, 129)   # #10B981
-    C_BG_LIGHT = RGBColor(248, 250, 252)      # #F8FAFC
-    C_CARD_BG = RGBColor(255, 255, 255)       # #FFFFFF
-    C_CARD_BORDER = RGBColor(226, 232, 240)   # #E2E8F0
-    C_TEXT_DARK = RGBColor(15, 23, 42)        # #0F172A
-    C_TEXT_MUTED = RGBColor(100, 116, 139)    # #64748B
-    C_TEXT_LIGHT = RGBColor(248, 250, 252)    # #F8FAFC
-    C_TEXT_LIGHT_MUTED = RGBColor(148, 163, 184) # #94A3B8
-    C_PILL_BG = RGBColor(238, 242, 255)       # #EEF2FF
+    # High-Contrast Executive Color Palette Definitions
+    C_NAVY_DARK = RGBColor(11, 19, 43)          # #0B132B (Deep Navy Background)
+    C_NAVY_CARD = RGBColor(20, 30, 55)          # #141E37 (Dark Slide Container)
+    C_NAVY_BORDER = RGBColor(46, 68, 105)       # #2E4469 (Subtle Dark Border)
+    C_INDIGO_ACCENT = RGBColor(79, 70, 229)     # #4F46E5 (Primary Brand Accent)
+    C_INDIGO_LIGHT = RGBColor(99, 102, 241)     # #6366F1
+    C_CYAN_ACCENT = RGBColor(14, 165, 233)      # #0EA5E9 (Cyan highlight)
+    C_RED_ACCENT = RGBColor(220, 38, 38)        # #DC2626 (Critical threat)
+    C_GREEN_ACCENT = RGBColor(16, 185, 129)     # #10B981 (Success / Security)
+    C_BG_LIGHT = RGBColor(248, 250, 252)        # #F8FAFC (Ultra-clean Slate Background)
+    C_CARD_BG = RGBColor(255, 255, 255)         # #FFFFFF (Crisp White Card)
+    C_CARD_BORDER = RGBColor(218, 225, 235)     # #DAE1EB (Defined Border)
+    
+    # Enhanced Text Contrast Colors (Fixed for High Visibility on Projectors & Screens)
+    C_TEXT_DARK = RGBColor(15, 23, 42)          # #0F172A (Slate 900 - Pure Deep Black)
+    C_TEXT_BODY = RGBColor(51, 65, 85)          # #334155 (Slate 700 - Highly Legible Body)
+    C_TEXT_LIGHT = RGBColor(255, 255, 255)      # #FFFFFF (Pure White)
+    C_TEXT_LIGHT_BODY = RGBColor(226, 232, 240) # #E2E8F0 (Slate 200 - Sharp on Dark)
+    C_TEXT_LIGHT_MUTED = RGBColor(148, 163, 184)# #94A3B8 (Slate 400)
+    C_PILL_BG = RGBColor(238, 242, 255)         # #EEF2FF (Indigo Tint)
 
     IMG_DIR = "/Users/mahak/.gemini/antigravity/brain/63ff7a6c-88ed-420f-957e-9fb7f22791b3/.user_uploaded"
     IMG_LINKED_PLATFORMS = os.path.join(IMG_DIR, "media_1792025167579_8b5562d1.jpg")
@@ -50,56 +53,57 @@ def build_presentation():
 
     def add_header(slide, tag_text, title_text, subtitle_text="", is_dark=False):
         # Category Pill
-        pill = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.4), Inches(4.8), Inches(0.32))
+        pill = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.38), Inches(5.0), Inches(0.35))
         pill.fill.solid()
         pill.fill.fore_color.rgb = C_NAVY_CARD if is_dark else C_PILL_BG
         pill.line.color.rgb = C_INDIGO_LIGHT if is_dark else C_INDIGO_ACCENT
-        pill.line.width = Pt(1)
+        pill.line.width = Pt(1.2)
         tf_pill = pill.text_frame
         tf_pill.word_wrap = True
         tf_pill.margin_left = tf_pill.margin_top = tf_pill.margin_right = tf_pill.margin_bottom = 0
         p_pill = tf_pill.paragraphs[0]
-        p_pill.text = tag_text.upper()
-        p_pill.font.size = Pt(9)
+        p_pill.text = f"  {tag_text.upper()}  "
+        p_pill.font.size = Pt(9.5)
         p_pill.font.bold = True
         p_pill.font.color.rgb = C_CYAN_ACCENT if is_dark else C_INDIGO_ACCENT
         p_pill.alignment = PP_ALIGN.CENTER
 
-        # Main Title
-        tx_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.8), Inches(11.733), Inches(0.95))
+        # Main Title & Subtitle Box
+        tx_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.78), Inches(11.733), Inches(0.98))
         tf = tx_box.text_frame
         tf.word_wrap = True
         tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
         p = tf.paragraphs[0]
         p.text = title_text
-        p.font.size = Pt(22)
+        p.font.size = Pt(25)
         p.font.bold = True
         p.font.color.rgb = C_TEXT_LIGHT if is_dark else C_TEXT_DARK
         
         if subtitle_text:
             p2 = tf.add_paragraph()
             p2.text = subtitle_text
-            p2.font.size = Pt(11.5)
-            p2.font.color.rgb = C_TEXT_LIGHT_MUTED if is_dark else C_TEXT_MUTED
+            p2.font.size = Pt(13)
+            p2.font.color.rgb = C_TEXT_LIGHT_MUTED if is_dark else C_TEXT_BODY
             p2.space_before = Pt(3)
 
     def add_footer(slide, slide_num, is_dark=False):
+        # Left Info
         tx_box = slide.shapes.add_textbox(Inches(0.8), Inches(7.05), Inches(8.5), Inches(0.35))
         tf = tx_box.text_frame
         tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
         p = tf.paragraphs[0]
         p.text = f"IEEE Ignite Hackathon 2026  ·  Host: SKIT Jaipur  |  Team Capycoders  |  Problem ID: SKIT002  |  Slide {slide_num} of 10"
-        p.font.size = Pt(9)
-        p.font.color.rgb = C_TEXT_LIGHT_MUTED if is_dark else C_TEXT_MUTED
+        p.font.size = Pt(9.5)
+        p.font.color.rgb = C_TEXT_LIGHT_MUTED if is_dark else C_TEXT_BODY
         p.alignment = PP_ALIGN.LEFT
 
-        # Add GitHub link on right
+        # Right GitHub link
         tx_box2 = slide.shapes.add_textbox(Inches(8.5), Inches(7.05), Inches(4.033), Inches(0.35))
         tf2 = tx_box2.text_frame
         tf2.margin_left = tf2.margin_top = tf2.margin_right = tf2.margin_bottom = 0
         p2 = tf2.paragraphs[0]
         p2.text = "github.com/Sunil-saini1818/MuleWatch"
-        p2.font.size = Pt(9)
+        p2.font.size = Pt(9.5)
         p2.font.bold = True
         p2.font.color.rgb = C_CYAN_ACCENT if is_dark else C_INDIGO_ACCENT
         p2.alignment = PP_ALIGN.RIGHT
@@ -109,15 +113,16 @@ def build_presentation():
         card.fill.solid()
         card.fill.fore_color.rgb = C_NAVY_CARD if is_dark else C_CARD_BG
         card.line.color.rgb = C_NAVY_BORDER if is_dark else C_CARD_BORDER
-        card.line.width = Pt(1)
+        card.line.width = Pt(1.2)
 
-        # Accent Top Stripe
+        # Top Accent Color Stripe
         stripe = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, Inches(0.08))
         stripe.fill.solid()
         stripe.fill.fore_color.rgb = accent_color
         stripe.line.fill.background()
 
-        tx_box = slide.shapes.add_textbox(left + Inches(0.22), top + Inches(0.2), width - Inches(0.44), height - Inches(0.35))
+        # Text Frame with comfortable inner padding
+        tx_box = slide.shapes.add_textbox(left + Inches(0.24), top + Inches(0.2), width - Inches(0.48), height - Inches(0.35))
         tf = tx_box.text_frame
         tf.word_wrap = True
         tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
@@ -125,7 +130,7 @@ def build_presentation():
         if badge:
             p_badge = tf.paragraphs[0]
             p_badge.text = badge.upper()
-            p_badge.font.size = Pt(9)
+            p_badge.font.size = Pt(10)
             p_badge.font.bold = True
             p_badge.font.color.rgb = accent_color
             p_badge.space_after = Pt(2)
@@ -134,39 +139,40 @@ def build_presentation():
             p_title = tf.paragraphs[0]
 
         p_title.text = title
-        p_title.font.size = Pt(14)
+        p_title.font.size = Pt(16)
         p_title.font.bold = True
         p_title.font.color.rgb = C_TEXT_LIGHT if is_dark else C_TEXT_DARK
-        p_title.space_after = Pt(7)
+        p_title.space_after = Pt(8)
 
         for item in items:
             p_item = tf.add_paragraph()
+            p_item.alignment = PP_ALIGN.LEFT
             if isinstance(item, tuple):
                 h, b = item
                 run_h = p_item.add_run()
-                run_h.text = f"• {h}: "
+                run_h.text = f"•  {h}: "
                 run_h.font.bold = True
-                run_h.font.size = Pt(10.5)
+                run_h.font.size = Pt(12)
                 run_h.font.color.rgb = C_TEXT_LIGHT if is_dark else C_TEXT_DARK
                 run_b = p_item.add_run()
                 run_b.text = b
-                run_b.font.size = Pt(10)
-                run_b.font.color.rgb = C_TEXT_LIGHT_MUTED if is_dark else C_TEXT_MUTED
+                run_b.font.size = Pt(11.5)
+                run_b.font.color.rgb = C_TEXT_LIGHT_BODY if is_dark else C_TEXT_BODY
             else:
-                p_item.text = f"• {item}"
-                p_item.font.size = Pt(10.5)
-                p_item.font.color.rgb = C_TEXT_LIGHT_MUTED if is_dark else C_TEXT_MUTED
-            p_item.space_after = Pt(5)
+                p_item.text = f"•  {item}"
+                p_item.font.size = Pt(11.5)
+                p_item.font.color.rgb = C_TEXT_LIGHT_BODY if is_dark else C_TEXT_BODY
+            p_item.space_after = Pt(7)
 
     def add_image_card(slide, left, top, width, height, img_path, caption=""):
         frame = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
         frame.fill.solid()
         frame.fill.fore_color.rgb = C_CARD_BG
         frame.line.color.rgb = C_CARD_BORDER
-        frame.line.width = Pt(1)
+        frame.line.width = Pt(1.2)
 
         pad = Inches(0.12)
-        caption_h = Inches(0.35)
+        caption_h = Inches(0.38)
         img_avail_h = height - caption_h - (pad * 2)
         img_avail_w = width - (pad * 2)
 
@@ -180,149 +186,154 @@ def build_presentation():
             tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
             p = tf.paragraphs[0]
             p.text = f"📷 {caption}"
-            p.font.size = Pt(9.5)
+            p.font.size = Pt(11)
             p.font.bold = True
             p.font.color.rgb = C_INDIGO_ACCENT
             p.alignment = PP_ALIGN.CENTER
 
     # =========================================================================
-    # SLIDE 1: Title Slide (Dark Theme)
+    # SLIDE 1: Title Slide (High Impact Dark Theme)
     # =========================================================================
     slide1 = prs.slides.add_slide(blank_layout)
     set_slide_background(slide1, C_NAVY_DARK)
 
     # Top Event Banner Pill
-    pill1 = slide1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.7), Inches(5.8), Inches(0.4))
+    pill1 = slide1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.65), Inches(6.4), Inches(0.42))
     pill1.fill.solid()
     pill1.fill.fore_color.rgb = C_NAVY_CARD
     pill1.line.color.rgb = C_INDIGO_LIGHT
-    pill1.line.width = Pt(1)
+    pill1.line.width = Pt(1.2)
     tf_p1 = pill1.text_frame
     tf_p1.margin_left = tf_p1.margin_top = tf_p1.margin_right = tf_p1.margin_bottom = 0
     p_p1 = tf_p1.paragraphs[0]
-    p_p1.text = "⚡ IEEE IGNITE HACKATHON 2026  ·  HOST: SKIT JAIPUR"
-    p_p1.font.size = Pt(10)
+    p_p1.text = "⚡  IEEE IGNITE HACKATHON 2026  ·  HOST: SKIT JAIPUR"
+    p_p1.font.size = Pt(11)
     p_p1.font.bold = True
     p_p1.font.color.rgb = C_CYAN_ACCENT
     p_p1.alignment = PP_ALIGN.CENTER
 
     # Main Project Title
-    tx_title = slide1.shapes.add_textbox(Inches(0.8), Inches(1.35), Inches(11.733), Inches(1.8))
+    tx_title = slide1.shapes.add_textbox(Inches(0.8), Inches(1.35), Inches(11.733), Inches(1.9))
     tf_t = tx_title.text_frame
     tf_t.word_wrap = True
     tf_t.margin_left = tf_t.margin_top = tf_t.margin_right = tf_t.margin_bottom = 0
     p_main = tf_t.paragraphs[0]
     p_main.text = "MuleWatch"
-    p_main.font.size = Pt(44)
+    p_main.font.size = Pt(50)
     p_main.font.bold = True
     p_main.font.color.rgb = RGBColor(255, 255, 255)
 
     p_sub = tf_t.add_paragraph()
     p_sub.text = "AI-Powered Detection of Suspicious Financial Advertisements & Cyber Cell Dispatch System"
-    p_sub.font.size = Pt(18)
+    p_sub.font.size = Pt(20)
+    p_sub.font.bold = True
     p_sub.font.color.rgb = C_CYAN_ACCENT
     p_sub.space_before = Pt(6)
 
     p_desc = tf_t.add_paragraph()
-    p_desc.text = "Autonomous threat intelligence harvesting, multimodal OCR/QR forensics, localized district risk mapping, and tamper-proof police evidence generation."
-    p_desc.font.size = Pt(12)
-    p_desc.font.color.rgb = C_TEXT_LIGHT_MUTED
+    p_desc.text = "Proactive threat intelligence harvesting, multimodal OCR/QR forensics, localized district risk mapping, and tamper-proof police evidence generation."
+    p_desc.font.size = Pt(13)
+    p_desc.font.color.rgb = C_TEXT_LIGHT_BODY
     p_desc.space_before = Pt(8)
 
-    # 3 Metadata Cards
-    m_top = Inches(3.6)
-    m_w = Inches(3.7)
-    m_h = Inches(1.9)
+    # 3 Metadata Cards (Wider, Bold, Clean)
+    m_top = Inches(3.65)
+    m_w = Inches(3.73)
+    m_h = Inches(1.95)
 
     card_meta1 = slide1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), m_top, m_w, m_h)
     card_meta1.fill.solid()
     card_meta1.fill.fore_color.rgb = C_NAVY_CARD
     card_meta1.line.color.rgb = C_NAVY_BORDER
+    card_meta1.line.width = Pt(1.2)
     tf_m1 = card_meta1.text_frame
-    tf_m1.margin_left = tf_m1.margin_top = tf_m1.margin_right = tf_m1.margin_bottom = Inches(0.2)
+    tf_m1.margin_left = tf_m1.margin_top = tf_m1.margin_right = tf_m1.margin_bottom = Inches(0.22)
     p_m1_tag = tf_m1.paragraphs[0]
     p_m1_tag.text = "HACKATHON CHALLENGE"
-    p_m1_tag.font.size = Pt(9)
+    p_m1_tag.font.size = Pt(10.5)
     p_m1_tag.font.bold = True
     p_m1_tag.font.color.rgb = C_CYAN_ACCENT
     p_m1_val = tf_m1.add_paragraph()
     p_m1_val.text = "Problem ID: SKIT002"
-    p_m1_val.font.size = Pt(16)
+    p_m1_val.font.size = Pt(18)
     p_m1_val.font.bold = True
     p_m1_val.font.color.rgb = RGBColor(255, 255, 255)
     p_m1_sub = tf_m1.add_paragraph()
     p_m1_sub.text = "Theme: AI Detection of Suspicious Financial Ads & Mule Syndicates"
-    p_m1_sub.font.size = Pt(10.5)
-    p_m1_sub.font.color.rgb = C_TEXT_LIGHT_MUTED
+    p_m1_sub.font.size = Pt(11.5)
+    p_m1_sub.font.color.rgb = C_TEXT_LIGHT_BODY
     p_m1_sub.space_before = Pt(4)
 
     card_meta2 = slide1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(4.8), m_top, m_w, m_h)
     card_meta2.fill.solid()
     card_meta2.fill.fore_color.rgb = C_NAVY_CARD
     card_meta2.line.color.rgb = C_NAVY_BORDER
+    card_meta2.line.width = Pt(1.2)
     tf_m2 = card_meta2.text_frame
-    tf_m2.margin_left = tf_m2.margin_top = tf_m2.margin_right = tf_m2.margin_bottom = Inches(0.2)
+    tf_m2.margin_left = tf_m2.margin_top = tf_m2.margin_right = tf_m2.margin_bottom = Inches(0.22)
     p_m2_tag = tf_m2.paragraphs[0]
     p_m2_tag.text = "DEVELOPMENT TEAM"
-    p_m2_tag.font.size = Pt(9)
+    p_m2_tag.font.size = Pt(10.5)
     p_m2_tag.font.bold = True
     p_m2_tag.font.color.rgb = C_INDIGO_LIGHT
     p_m2_val = tf_m2.add_paragraph()
     p_m2_val.text = "Team: capycoders"
-    p_m2_val.font.size = Pt(16)
+    p_m2_val.font.size = Pt(18)
     p_m2_val.font.bold = True
     p_m2_val.font.color.rgb = RGBColor(255, 255, 255)
     p_m2_sub = tf_m2.add_paragraph()
     p_m2_sub.text = "Focus: Full-Stack AI, Computer Vision, Digital Forensics & Cyber Defense"
-    p_m2_sub.font.size = Pt(10.5)
-    p_m2_sub.font.color.rgb = C_TEXT_LIGHT_MUTED
+    p_m2_sub.font.size = Pt(11.5)
+    p_m2_sub.font.color.rgb = C_TEXT_LIGHT_BODY
     p_m2_sub.space_before = Pt(4)
 
     card_meta3 = slide1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.8), m_top, m_w, m_h)
     card_meta3.fill.solid()
     card_meta3.fill.fore_color.rgb = C_NAVY_CARD
     card_meta3.line.color.rgb = C_NAVY_BORDER
+    card_meta3.line.width = Pt(1.2)
     tf_m3 = card_meta3.text_frame
-    tf_m3.margin_left = tf_m3.margin_top = tf_m3.margin_right = tf_m3.margin_bottom = Inches(0.2)
+    tf_m3.margin_left = tf_m3.margin_top = tf_m3.margin_right = tf_m3.margin_bottom = Inches(0.22)
     p_m3_tag = tf_m3.paragraphs[0]
     p_m3_tag.text = "HOST INSTITUTION"
-    p_m3_tag.font.size = Pt(9)
+    p_m3_tag.font.size = Pt(10.5)
     p_m3_tag.font.bold = True
     p_m3_tag.font.color.rgb = C_GREEN_ACCENT
     p_m3_val = tf_m3.add_paragraph()
     p_m3_val.text = "SKIT Jaipur"
-    p_m3_val.font.size = Pt(16)
+    p_m3_val.font.size = Pt(18)
     p_m3_val.font.bold = True
     p_m3_val.font.color.rgb = RGBColor(255, 255, 255)
     p_m3_sub = tf_m3.add_paragraph()
     p_m3_sub.text = "Swami Keshvanand Institute of Technology, Management & Gramothan"
-    p_m3_sub.font.size = Pt(10.5)
-    p_m3_sub.font.color.rgb = C_TEXT_LIGHT_MUTED
+    p_m3_sub.font.size = Pt(11.5)
+    p_m3_sub.font.color.rgb = C_TEXT_LIGHT_BODY
     p_m3_sub.space_before = Pt(4)
 
     # GitHub Banner at Bottom
-    git_banner = slide1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(5.8), Inches(11.733), Inches(0.75))
+    git_banner = slide1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(5.85), Inches(11.733), Inches(0.75))
     git_banner.fill.solid()
     git_banner.fill.fore_color.rgb = C_NAVY_CARD
     git_banner.line.color.rgb = C_INDIGO_ACCENT
-    git_banner.line.width = Pt(1)
+    git_banner.line.width = Pt(1.5)
     tf_git = git_banner.text_frame
-    tf_git.margin_left = Inches(0.25)
+    tf_git.margin_left = Inches(0.3)
     tf_git.margin_top = Inches(0.12)
     p_git = tf_git.paragraphs[0]
+    p_git.alignment = PP_ALIGN.LEFT
     run_git_label = p_git.add_run()
     run_git_label.text = "PUBLIC GITHUB REPOSITORY: "
     run_git_label.font.bold = True
-    run_git_label.font.size = Pt(11)
+    run_git_label.font.size = Pt(12)
     run_git_label.font.color.rgb = C_CYAN_ACCENT
     run_git_url = p_git.add_run()
     run_git_url.text = "https://github.com/Sunil-saini1818/MuleWatch  "
-    run_git_url.font.size = Pt(11)
+    run_git_url.font.size = Pt(12)
     run_git_url.font.bold = True
     run_git_url.font.color.rgb = RGBColor(255, 255, 255)
     run_git_badge = p_git.add_run()
-    run_git_badge.text = "[Production-Ready Fullstack Codebase · Complete Commit History]"
-    run_git_badge.font.size = Pt(10)
+    run_git_badge.text = "[Production-Ready Fullstack Codebase · Complete Verified Commits]"
+    run_git_badge.font.size = Pt(11)
     run_git_badge.font.color.rgb = C_GREEN_ACCENT
 
     add_footer(slide1, 1, is_dark=True)
@@ -347,7 +358,7 @@ def build_presentation():
                 badge="Emerging Threat Vector",
                 accent_color=C_RED_ACCENT)
 
-    create_card(slide2, Inches(6.8), Inches(1.85), Inches(5.7), Inches(3.6),
+    create_card(slide2, Inches(6.8), Inches(1.85), Inches(5.733), Inches(3.6),
                 "Existing Law Enforcement Bottlenecks",
                 [
                     ("Manual & Fragmented Monitoring", "Police personnel manually monitor social media—a reactive, unsustainable strategy facing millions of posts daily."),
@@ -358,25 +369,44 @@ def build_presentation():
                 badge="Operational Deficiency",
                 accent_color=C_INDIGO_ACCENT)
 
-    # Bottom Stat Ribbon
-    ribbon = slide2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(5.65), Inches(11.733), Inches(1.15))
-    ribbon.fill.solid()
-    ribbon.fill.fore_color.rgb = C_CARD_BG
-    ribbon.line.color.rgb = C_CARD_BORDER
-    tf_rib = ribbon.text_frame
-    tf_rib.margin_top = Inches(0.12)
-    tf_rib.margin_left = Inches(0.2)
-    p_rib_t = tf_rib.paragraphs[0]
-    p_rib_t.text = "THE MULE ACCOUNT PIPELINE: HOW ORCHESTRATED CRIME DRAINS CITIZEN SAVINGS"
-    p_rib_t.font.size = Pt(9.5)
-    p_rib_t.font.bold = True
-    p_rib_t.font.color.rgb = C_RED_ACCENT
-    p_rib_b = tf_rib.add_paragraph()
-    p_rib_b.text = "1. Social Media Ad Recruiting Mules  ➔  2. KYC & UPI Transfer via Telegram  ➔  3. Scammed Funds Injected  ➔  4. Instant ATM / Crypto Cashout (Zero Trace)"
-    p_rib_b.font.size = Pt(11)
-    p_rib_b.font.bold = True
-    p_rib_b.font.color.rgb = C_TEXT_DARK
-    p_rib_b.space_before = Pt(4)
+    # High-impact 4-step flowchart ribbon cards
+    step_w = Inches(2.78)
+    step_h = Inches(1.2)
+    step_top = Inches(5.62)
+    steps_data = [
+        ("STAGE 1: ADVERTISING", "Social Ads recruiting 'mules' on Telegram/Forums", C_RED_ACCENT),
+        ("STAGE 2: ONBOARDING", "KYC docs, ATM cards & UPI leased for 10% cut", C_INDIGO_ACCENT),
+        ("STAGE 3: LAUNDERING", "Dirty funds injected & instantly split across accounts", C_INDIGO_LIGHT),
+        ("STAGE 4: ATTRITION", "Rapid ATM cash-out; victims left with frozen assets", C_NAVY_DARK)
+    ]
+    for i, (stitle, sdesc, scolor) in enumerate(steps_data):
+        sleft = Inches(0.8) + (i * Inches(2.98))
+        scard = slide2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, sleft, step_top, step_w, step_h)
+        scard.fill.solid()
+        scard.fill.fore_color.rgb = C_CARD_BG
+        scard.line.color.rgb = C_CARD_BORDER
+        scard.line.width = Pt(1.2)
+
+        # Accent Stripe
+        sstrip = slide2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, sleft, step_top, step_w, Inches(0.06))
+        sstrip.fill.solid()
+        sstrip.fill.fore_color.rgb = scolor
+        sstrip.line.fill.background()
+
+        sbox = slide2.shapes.add_textbox(sleft + Inches(0.12), step_top + Inches(0.12), step_w - Inches(0.24), step_h - Inches(0.2))
+        stf = sbox.text_frame
+        stf.word_wrap = True
+        stf.margin_left = stf.margin_top = stf.margin_right = stf.margin_bottom = 0
+        sp1 = stf.paragraphs[0]
+        sp1.text = stitle
+        sp1.font.size = Pt(10)
+        sp1.font.bold = True
+        sp1.font.color.rgb = scolor
+        sp2 = stf.add_paragraph()
+        sp2.text = sdesc
+        sp2.font.size = Pt(10.5)
+        sp2.font.color.rgb = C_TEXT_BODY
+        sp2.space_before = Pt(3)
 
     add_footer(slide2, 2)
 
@@ -389,19 +419,18 @@ def build_presentation():
                "MuleWatch: Autonomous Threat Intelligence to Cyber Interdiction",
                "An integrated fullstack platform bridging continuous threat crawling, multimodal AI, and rapid cyber cell dispatch")
 
-    create_card(slide3, Inches(0.8), Inches(1.85), Inches(5.3), Inches(4.9),
+    create_card(slide3, Inches(0.8), Inches(1.85), Inches(5.4), Inches(4.9),
                 "Key Capabilities & Architecture",
                 [
                     ("Autonomous Multichannel Harvesting", "Continuous background ingestion workers monitor Telegram underground groups, discussion forums (Charcha), and public social streams."),
                     ("Multimodal Entity Extraction", "Combines high-accuracy Tesseract OCR with OpenCV QR decoding to extract masked bank numbers, UPI handles, and payment links."),
                     ("Dynamic Heuristic Risk Scoring", "NLP threat categorization instantly scores posts (0-100%) against urgency triggers, commission bait, and illicit financial keywords."),
-                    ("Mule Syndicate Entity Linking", "Resolves disparate posts into unified actor profiles, linking repeated UPI handles, phone numbers, and associated telegram aliases."),
-                    ("Cyber Cell Dispatch & I4C Webhooks", "1-click generation of court-admissible PDF dossiers with SHA-256 tamper-proof hashes and direct dispatch to bank nodal officers.")
+                    ("Rapid Cyber Cell Dispatch", "One-click generation of court-admissible PDF dossiers with SHA-256 tamper-proof hashes and direct dispatch to bank nodal officers.")
                 ],
                 badge="End-to-End Cyber Defense",
                 accent_color=C_INDIGO_ACCENT)
 
-    add_image_card(slide3, Inches(6.3), Inches(1.85), Inches(6.233), Inches(4.9),
+    add_image_card(slide3, Inches(6.4), Inches(1.85), Inches(6.133), Inches(4.9),
                    IMG_DASHBOARD, "Figure 1: MuleWatch Real-Time Command Center & Threat Stream")
 
     add_footer(slide3, 3)
@@ -415,7 +444,7 @@ def build_presentation():
                "Production-Grade, Modular & Resilient Fullstack Stack",
                "Engineered for high-concurrency ingestion, asynchronous processing, and zero-compromise digital forensics")
 
-    create_card(slide4, Inches(0.8), Inches(1.85), Inches(3.7), Inches(4.9),
+    create_card(slide4, Inches(0.8), Inches(1.85), Inches(3.75), Inches(4.9),
                 "Frontend Experience Layer",
                 [
                     ("React 18 & Vite", "Lightning-fast reactive UI with hot module replacement and optimized production bundle."),
@@ -426,7 +455,7 @@ def build_presentation():
                 badge="Client Presentation",
                 accent_color=C_INDIGO_ACCENT)
 
-    create_card(slide4, Inches(4.8), Inches(1.85), Inches(3.7), Inches(4.9),
+    create_card(slide4, Inches(4.78), Inches(1.85), Inches(3.75), Inches(4.9),
                 "Backend & Intelligence Core",
                 [
                     ("FastAPI & Python 3.12", "Asynchronous ASGI framework delivering ultra-low latency REST APIs and strict Pydantic models."),
@@ -437,7 +466,7 @@ def build_presentation():
                 badge="Microservice Engine",
                 accent_color=C_NAVY_DARK)
 
-    create_card(slide4, Inches(8.8), Inches(1.85), Inches(3.733), Inches(4.9),
+    create_card(slide4, Inches(8.78), Inches(1.85), Inches(3.75), Inches(4.9),
                 "Forensics & Police Interdiction",
                 [
                     ("SHA-256 Evidence Seals", "Cryptographic fingerprinting of raw ad screenshots and metadata to ensure Section 65B legal validity."),
@@ -459,19 +488,18 @@ def build_presentation():
                "Autonomous Multi-Source Ingestion & Crawler Telemetry",
                "Proactively scanning underground Telegram channels, public discussion boards, and social threads")
 
-    create_card(slide5, Inches(0.8), Inches(1.85), Inches(5.3), Inches(4.9),
+    create_card(slide5, Inches(0.8), Inches(1.85), Inches(5.4), Inches(4.9),
                 "Automated Ingestion Infrastructure",
                 [
-                    ("Telethon MTProto Telegram Ingestion", "Subscribes directly to suspect Telegram channels, capturing incoming messages, forwarded posts, and embedded image assets in real time."),
-                    ("Charcha Discussion Forum Scraper", "Dedicated resilient crawler with dynamic pagination, thread tracking, and deduplication for local underground discussion boards."),
+                    ("Telethon MTProto Ingestion", "Subscribes directly to suspect Telegram channels, capturing incoming messages, forwarded posts, and embedded image assets in real time."),
+                    ("Charcha Forum Scraper", "Dedicated resilient crawler with dynamic pagination, thread tracking, and deduplication for local underground discussion boards."),
                     ("SimHash & LSH Deduplication", "Locality-Sensitive Hashing identifies duplicate syndicated ads reposted across dozens of channels, consolidating threat records."),
-                    ("Live Crawler Health Telemetry", "Real-time heartbeat monitoring tracks active endpoints, fetch latencies, and total harvested records with automatic retry policies."),
-                    ("Extensible Ingestion API", "Standardized webhook receiver accepts external threat feeds from partner cybersecurity teams and public reporting portals.")
+                    ("Live Crawler Health Telemetry", "Real-time heartbeat monitoring tracks active endpoints, fetch latencies, and total harvested records with automatic retry policies.")
                 ],
                 badge="Data Ingestion Pipeline",
                 accent_color=C_INDIGO_ACCENT)
 
-    add_image_card(slide5, Inches(6.3), Inches(1.85), Inches(6.233), Inches(4.9),
+    add_image_card(slide5, Inches(6.4), Inches(1.85), Inches(6.133), Inches(4.9),
                    IMG_LINKED_PLATFORMS, "Figure 2: Multi-Platform Ingestion Telemetry & Health Monitoring")
 
     add_footer(slide5, 5)
@@ -485,19 +513,18 @@ def build_presentation():
                "Multimodal OCR, QR Code Decoding & Entity Extraction",
                "Exposing financial identifiers deliberately disguised within images, posters, and payment barcodes")
 
-    create_card(slide6, Inches(0.8), Inches(1.85), Inches(5.3), Inches(4.9),
+    create_card(slide6, Inches(0.8), Inches(1.85), Inches(5.4), Inches(4.9),
                 "Deep Visual Extraction Engine",
                 [
                     ("Adaptive Image Pre-Processing", "Applies contrast stretching, adaptive thresholding, and noise reduction to overcome obfuscated fonts and low-resolution screenshots."),
                     ("Tesseract OCR Entity Parsing", "Extracts masked bank names, IFSC codes, phone numbers, and commission percentages from graphic ad banners."),
                     ("Instant UPI & Crypto QR Decoding", "OpenCV and PyZBar decoder extracts raw `upi://pay?pa=...` merchant strings and crypto wallet addresses directly from payment graphics."),
-                    ("NLP Risk Scoring Heuristics", "Evaluates linguistic urgency indicators ('Immediate Need', 'Rent Bank Account', '10% Daily Commission') into weighted threat scores."),
                     ("Interactive 'Check a Post' Hub", "Allows investigators to test suspicious URLs, paste raw text, or upload image screenshots for instantaneous risk analysis.")
                 ],
                 badge="Multimodal Intelligence",
                 accent_color=C_INDIGO_ACCENT)
 
-    add_image_card(slide6, Inches(6.3), Inches(1.85), Inches(6.233), Inches(4.9),
+    add_image_card(slide6, Inches(6.4), Inches(1.85), Inches(6.133), Inches(4.9),
                    IMG_CHECK_POST, "Figure 3: Interactive Multimodal Analyzer with QR & Entity Extraction")
 
     add_footer(slide6, 6)
@@ -511,19 +538,18 @@ def build_presentation():
                "Localized Rajasthan District-Level Fraud Analytics",
                "Interactive TopoJSON visualization mapping mule account syndicates across Rajasthan administrative districts")
 
-    create_card(slide7, Inches(0.8), Inches(1.85), Inches(5.3), Inches(4.9),
+    create_card(slide7, Inches(0.8), Inches(1.85), Inches(5.4), Inches(4.9),
                 "Hyper-Local Regional Telemetry",
                 [
                     ("High-Fidelity Vector TopoJSON", "Custom-crafted SVG district boundaries with clean, gapless polygon borders, eliminating geographic rendering distortion."),
                     ("Real-World Hotspot Correlation", "Reflects real ground intelligence across known financial cybercrime hotspots including Jaipur, Bharatpur, Alwar, and Mewat border zones."),
                     ("Dynamic Hover & Click Data Binding", "Interactive UI binds to live district metrics, displaying active cases, suspected mule accounts, flagged volume, and resolution rates."),
-                    ("Domain-Specific Analytics Table", "Replaces generic loan metrics with actionable cyber metrics: 'Confirmed Mule Cases', 'Suspected Bank Accounts', and 'Lien Requests'."),
                     ("Tactical Law Enforcement Deployment", "Enables State Cyber Police Headquarters to allocate investigative resources directly to emerging fraud epicenters.")
                 ],
                 badge="Geospatial Threat Mapping",
                 accent_color=C_INDIGO_ACCENT)
 
-    add_image_card(slide7, Inches(6.3), Inches(1.85), Inches(6.233), Inches(4.9),
+    add_image_card(slide7, Inches(6.4), Inches(1.85), Inches(6.133), Inches(4.9),
                    IMG_RAJASTHAN_MAP, "Figure 4: Rajasthan District-Level Fraud TopoJSON Intelligence Map")
 
     add_footer(slide7, 7)
@@ -537,19 +563,18 @@ def build_presentation():
                "Cyber Cell Dispatch & Tamper-Proof Evidence Dossier",
                "Bridging the critical gap between automated intelligence and judicial action with 1-click police exports")
 
-    create_card(slide8, Inches(0.8), Inches(1.85), Inches(5.3), Inches(4.9),
+    create_card(slide8, Inches(0.8), Inches(1.85), Inches(5.4), Inches(4.9),
                 "Operational Enforcement Pipeline",
                 [
                     ("Dedicated Nodal Dispatch Queue", "Confirmed fraud cases move automatically from general investigation into a dedicated 'Cyber Cell Dispatch' operational queue."),
                     ("Automated Evidence Dossier (PDF)", "Generates standardized judicial evidence dossiers featuring post URLs, origin IP addresses, actor handles, and device user-agents."),
                     ("Cryptographic SHA-256 Proof", "Every generated report seals raw evidence with SHA-256 checksums to satisfy Section 65B Indian Evidence Act standards."),
-                    ("1-Click Simulated Dispatches", "Direct webhook dispatches to the National Cyber Crime Reporting Portal (I4C) and automated bank account lien freeze notices."),
-                    ("Reversal Guardrails ('Revert to Draft')", "Built-in safety state machine allows officers to instantly reverse accidental confirmations with zero audit trail corruption.")
+                    ("1-Click Simulated Dispatches", "Direct webhook dispatches to the National Cyber Crime Reporting Portal (I4C) and automated bank account lien freeze notices.")
                 ],
                 badge="Judicial & Banking Interdiction",
                 accent_color=C_GREEN_ACCENT)
 
-    add_image_card(slide8, Inches(6.3), Inches(1.85), Inches(6.233), Inches(4.9),
+    add_image_card(slide8, Inches(6.4), Inches(1.85), Inches(6.133), Inches(4.9),
                    IMG_PDF_REPORT, "Figure 5: Forensic Evidence Report with SHA-256 Cryptographic Hash")
 
     add_footer(slide8, 8)
@@ -563,19 +588,18 @@ def build_presentation():
                "Measurable Impact & Syndicate Network Linkage",
                "Uncovering complex multi-actor mule syndicates through automated entity relationship graphs")
 
-    create_card(slide9, Inches(0.8), Inches(1.85), Inches(5.3), Inches(4.9),
+    create_card(slide9, Inches(0.8), Inches(1.85), Inches(5.4), Inches(4.9),
                 "Quantifiable Operational Advantage",
                 [
                     (">85% Reduction in Triage Time", "Reduces incident verification timelines from 48-72 hours of manual searching to under 3 minutes per flagged advertisement."),
                     ("Mule Syndicate Linkage Graph", "Force-directed visual graph uncovers shared UPI handles, phone numbers, and Telegram channels linking disparate mule accounts."),
                     ("Digital Chain of Custody", "Immutable digital audit trail records timestamps, examiner actions, and state transitions for courtroom presentation."),
-                    ("Inter-Agency Collaboration", "Standardized JSON/PDF export formats allow seamless intelligence exchange between State Cyber Cells and Nodal Bank Officers."),
                     ("Proactive Threat Neutralization", "Freezes mule bank accounts before dirty scam funds can be layered or cashed out at ATMs.")
                 ],
                 badge="High-Impact Outcomes",
                 accent_color=C_INDIGO_ACCENT)
 
-    add_image_card(slide9, Inches(6.3), Inches(1.85), Inches(6.233), Inches(4.9),
+    add_image_card(slide9, Inches(6.4), Inches(1.85), Inches(6.133), Inches(4.9),
                    IMG_SELLER_NETWORK, "Figure 6: Mule Syndicate Linkage Graph & Financial Entity Clustering")
 
     add_footer(slide9, 9)
@@ -590,7 +614,7 @@ def build_presentation():
                "MuleWatch delivers an operational, end-to-end defense system against organized financial cybercrime",
                is_dark=True)
 
-    create_card(slide10, Inches(0.8), Inches(1.85), Inches(3.7), Inches(3.7),
+    create_card(slide10, Inches(0.8), Inches(1.85), Inches(3.75), Inches(3.7),
                 "Delivered Milestones",
                 [
                     ("Production Fullstack Engine", "FastAPI + React 18 with persistent SQLite WAL database and live telemetry."),
@@ -602,7 +626,7 @@ def build_presentation():
                 accent_color=C_GREEN_ACCENT,
                 is_dark=True)
 
-    create_card(slide10, Inches(4.8), Inches(1.85), Inches(3.7), Inches(3.7),
+    create_card(slide10, Inches(4.78), Inches(1.85), Inches(3.75), Inches(3.7),
                 "Immediate Roadmap",
                 [
                     ("WhatsApp & Dark Web Crawlers", "Expanding autonomous crawlers to WhatsApp Business channels and Tor forums."),
@@ -614,7 +638,7 @@ def build_presentation():
                 accent_color=C_CYAN_ACCENT,
                 is_dark=True)
 
-    create_card(slide10, Inches(8.8), Inches(1.85), Inches(3.733), Inches(3.7),
+    create_card(slide10, Inches(8.78), Inches(1.85), Inches(3.75), Inches(3.7),
                 "Team & Repository",
                 [
                     ("Team Capycoders", "Developers dedicated to building high-impact cyber defense and financial integrity tooling."),
@@ -633,18 +657,20 @@ def build_presentation():
     qa_banner.line.color.rgb = C_CYAN_ACCENT
     qa_banner.line.width = Pt(1.5)
     tf_qa = qa_banner.text_frame
-    tf_qa.margin_top = Inches(0.15)
+    tf_qa.margin_top = Inches(0.18)
     tf_qa.margin_left = Inches(0.3)
     p_qa1 = tf_qa.paragraphs[0]
     p_qa1.text = "THANK YOU  ·  READY FOR LIVE DEMONSTRATION & JUDGES' Q&A"
-    p_qa1.font.size = Pt(14)
+    p_qa1.font.size = Pt(16)
     p_qa1.font.bold = True
     p_qa1.font.color.rgb = RGBColor(255, 255, 255)
+    p_qa1.alignment = PP_ALIGN.CENTER
     p_qa2 = tf_qa.add_paragraph()
     p_qa2.text = "Explore the live system, test suspicious advertisements, and verify the end-to-end evidence generation pipeline."
-    p_qa2.font.size = Pt(11)
-    p_qa2.font.color.rgb = C_TEXT_LIGHT_MUTED
-    p_qa2.space_before = Pt(3)
+    p_qa2.font.size = Pt(12.5)
+    p_qa2.font.color.rgb = C_TEXT_LIGHT_BODY
+    p_qa2.alignment = PP_ALIGN.CENTER
+    p_qa2.space_before = Pt(4)
 
     add_footer(slide10, 10, is_dark=True)
 
